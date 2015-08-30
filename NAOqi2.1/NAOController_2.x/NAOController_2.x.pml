@@ -7,8 +7,5 @@
     <Dialogs />
     <Resources />
     <Topics />
-    <IgnoredPaths>
-        <Path src=".DS_Store" />
-        <Path src="NAOController_2.x/.DS_Store" />
-    </IgnoredPaths>
+    <IgnoredPaths />
 </Package>

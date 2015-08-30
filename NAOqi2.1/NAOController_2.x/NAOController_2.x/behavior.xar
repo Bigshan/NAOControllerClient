@@ -64,6 +64,10 @@ class MyClass(GeneratedClass):
             self.audio = ALProxy("ALAudioDevice")
         except :
             self.audio = ALProxy("ALAudioPlayer")
+        try:
+            self.system = ALProxy("ALSystem")
+        except :
+            pass
     def onLoad(self):
         self.bstart = True
     def onUnload(self):
@@ -82,7 +86,7 @@ class MyClass(GeneratedClass):
                 self.msg_unpack()
             except :
                 self.logger.info("bug????")
-                pass
+            pass
     def onInput_onStop(self):
         self.onUnload()
         pass
@@ -93,9 +97,14 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
         self.sock.bind( ('',self.RecvPort))
     def msg_unpack(self):
-        if self.msg == "REQUEST" and self.bstart:
-            self.logger.info("msg_unpack")
-            self.sendMsg()
+        if self.msg == "OnlineReq":
+            self.sendOnlineMsg()
+        elif self.msg == "BehaviorReq":
+            self.sendBehaviorMsg()
+        elif self.msg == "LanguageReq":
+            self.sendLanguageMsg()
+        else:
+            pass
     def MsgPack(self):
         header = "SHIQISHAN"
         try:
@@ -131,10 +140,58 @@ class MyClass(GeneratedClass):
                 installBehaviors += i
                 installBehaviors += "$"
         self.roboticsInfo = struct.pack('!9s3i3500s6000s',header,isRobotics,stiffness,volume,runingBehaviors,installBehaviors)
+
+    def sendOnlineMsg(self):
+        header = "OnlineRes"
+        name = ""
+        version = ""
+        try:
+            volume = self.audio.getOutputVolume()/10
+            isRobotics = 1
+        except:
+            isRobotics = 0
+        if(isRobotics == 1):
+            self.logger.info("=======1")
+            try:
+                stiffness = self.motion.getStiffnesses("Body")
+                name = self.system.robotName()
+                version = self.system.systemVersion()
+            except :
+                name = "*"
+                version = "*"
+                stiffness = 0
+        else:
+            self.logger.info("=======0")
+            stiffness = 0
+            name = "*"
+            version = "*"
+        robotInfo = struct.pack('!15s20s10s2h',header,name,version,isRobotics,stiffness)
+        self.sock.sendto(robotInfo,(self.addr, self.port))
+        #self.sock.sendto(robotInfo1,('127.0.0.1', self.port))
+    def sendBehaviorMsg(self):
+        pass
+    def sendLanguageMsg(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def sendMsg(self):
         self.MsgPack()
         self.sock.sendto(self.roboticsInfo,(self.addr, self.port))
-        self.sock.sendto(self.roboticsInfo,("127.0.0.1", self.port))]]>
+        #self.sock.sendto(self.roboticsInfo,('127.0.0.1', self.port))]]>
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
