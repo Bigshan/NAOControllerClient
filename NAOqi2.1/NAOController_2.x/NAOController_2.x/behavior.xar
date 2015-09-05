@@ -166,8 +166,9 @@ class MyClass(GeneratedClass):
             name = "*"
             version = "*"
         robotInfo = struct.pack('!15s20s10s2h',header,name,version,isRobotics,stiffness)
+        robotInfo1 = struct.pack('!15s20s10s2h',header,"nao","2.13",1,1)
         self.sock.sendto(robotInfo,(self.addr, self.port))
-        #self.sock.sendto(robotInfo1,('127.0.0.1', self.port))
+        self.sock.sendto(robotInfo1,('127.0.0.1', self.port))
     def sendBehaviorMsg(self):
         pass
     def sendLanguageMsg(self):
