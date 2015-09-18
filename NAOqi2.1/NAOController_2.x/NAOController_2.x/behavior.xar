@@ -321,6 +321,7 @@ class MyClass(GeneratedClass):
         GeneratedClass.__init__(self)
         self.memory = ALProxy("ALMemory")
         self.motion = ALProxy("ALMotion")
+        self.postureProxy = ALProxy("ALRobotPosture")
         self.startSocket()
     def onLoad(self):
         self.bstart = True
@@ -340,10 +341,19 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( ('',47398))
     def msg_unpack(self):
-        if(self.msg.startswith('MotionMsg',0,15)):
-            self.logger.info("get motion...")
-        elif(self.msg.startswith('behaviorMsg',0,15)):
-            pass
+        if(self.msg.startswith('MotionMsg',0,16)):
+            header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
+            walkX = walkX/167772160.0
+            walkY = walkY/167772160.0
+            theta = theta/167772160.0
+            frequency = frequency/167772160.0
+            self.motion.setWalkTargetVelocity(walkX,walkY,theta,frequency)
+        elif(self.msg.startswith('PostureMsg',0,16)):
+            posture = []
+            header,info = struct.unpack("!16s16s",self.msg)
+            posture = info.split('*')
+            self.postureProxy.setMaxTryNumber(2)
+            result = self.postureProxy.goToPosture(posture[0],0.6)
         else:
             self.logger.info(self.msg)]]>
 </content>
