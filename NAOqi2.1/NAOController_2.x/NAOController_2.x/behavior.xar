@@ -349,13 +349,19 @@ class MyClass(GeneratedClass):
             frequency = frequency/167772160.0
             self.motion.setWalkTargetVelocity(walkX,walkY,theta,frequency)
         elif(self.msg.startswith('PostureMsg',0,16)):
-            posture = []
             header,info = struct.unpack("!16s16s",self.msg)
-            posture = info.split('*')
+            posture = self.getString(info)
             self.postureProxy.setMaxTryNumber(2)
-            result = self.postureProxy.goToPosture(posture[0],0.6)
+            result = self.postureProxy.goToPosture(posture,0.6)
         else:
-            self.logger.info(self.msg)]]>
+            self.logger.info(self.msg)
+    def getString(self,p):
+        string = []
+        string = p.split('*|')
+        if len(string)>0:
+            return string[0]
+        else:
+            return ""]]>
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
