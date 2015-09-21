@@ -341,6 +341,7 @@ class MyClass(GeneratedClass):
             time.sleep(self.threadtime)
     def onInput_onStop(self):
         self.onUnload()
+        self.sock.close()
     def startSocket(self):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
