@@ -347,13 +347,19 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( ('',47398))
     def msg_unpack(self):
-        if(self.msg.startswith('MotionMsg',0,16)):
+        if(self.msg.startswith('WalkMsg',0,16)):
             header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
             walkX = walkX/167772160.0
             walkY = walkY/167772160.0
             theta = theta/167772160.0
             frequency = frequency/167772160.0
             self.motion.setWalkTargetVelocity(walkX,walkY,theta,frequency)
+        elif(self.msg.startswith('HeadMsg',0,16)):
+            header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
+            walkX = walkX/167772160.0
+            walkY = walkY/167772160.0
+            self.motion.changeAngles("HeadYaw",walkY,0.2)
+            self.motion.changeAngles("HeadPitch",walkX,0.2)
         elif(self.msg.startswith('PostureMsg',0,16)):
             header,info = struct.unpack("!16s16s",self.msg)
             posture = self.getString(info)
