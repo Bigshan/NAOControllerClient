@@ -242,6 +242,8 @@ class MyClass(GeneratedClass):
     def sendSettingsMsg(self):
         header = "SettingsRes"
         supportLanguage = ""
+        isHighVersion = 0
+        robotName = ""
         try:
             volume = self.audio.getOutputVolume()
             isRobotics = 1
@@ -255,6 +257,12 @@ class MyClass(GeneratedClass):
             except :
                 volume = 0
                 stiffness = 0
+            try:
+                system = ALProxy("ALSystem")
+                isHighVersion = 1
+                robotName = system.robotName()
+            except :
+                pass
         else:
             volume = 0
             stiffness = 0
@@ -263,10 +271,8 @@ class MyClass(GeneratedClass):
         for i in languageList:
             supportLanguage += i
             supportLanguage += "$"
-        robotInfo = struct.pack('!15s20s200s3h',header,currentLanguage,supportLanguage,isRobotics,stiffness,volume)
-        self.sock.sendto(robotInfo,(self.addr, self.port))
-        robotInfo1 = struct.pack('!15s3h20s200s',header,1,1,8,"Chinese","Chinese$English$German$Italian$Japanese$")
-        #self.sock.sendto(robotInfo1,('127.0.0.1', self.port))]]>
+        robotInfo = struct.pack('!15s20s200s20s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
+        self.sock.sendto(robotInfo,(self.addr, self.port))]]>
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
