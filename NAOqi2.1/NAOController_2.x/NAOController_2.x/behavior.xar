@@ -233,8 +233,6 @@ class MyClass(GeneratedClass):
                 installBehaviors += "$"
         robotInfo = struct.pack('!15s400s1000s',header,runingBehaviors,installBehaviors)
         self.sock.sendto(robotInfo,(self.addr, self.port))
-        robotInfo1 = struct.pack('!15s400s1000s',header,"test_1$test_2$sayhello$","test_1$test_3$test_2$sayhello$test_6$")
-        #self.sock.sendto(robotInfo1,('127.0.0.1', self.port))
     def sendSettingsMsg(self):
         header = "SettingsRes"
         supportLanguage = ""
@@ -317,7 +315,7 @@ class MyClass(GeneratedClass):
                                     </BehaviorKeyframe>
                                     <BehaviorKeyframe name="selection_on" index="20">
                                         <Diagram>
-                                            <Box name="Action Cilent" id="3" localization="8" tooltip="Motion Cilent by shiqishan" x="133" y="102">
+                                            <Box name="Action Cilent" id="3" localization="8" tooltip="Motion Cilent by shiqishan" x="324" y="41">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -363,7 +361,7 @@ class MyClass(GeneratedClass):
             header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
             walkX = walkX/167772160.0
             walkY = walkY/167772160.0
-            currentYaw = self.motion.getAngles("HeadYaw",Falstiffness = self.motion.getStiffnesses("Body")se)
+            currentYaw = self.motion.getAngles("HeadYaw",False)
             currentPitch = self.motion.getAngles("HeadPitch",False)
             if(walkX>0 and currentPitch[0]<=0.326):
                 self.motion.changeAngles("HeadPitch",walkX,0.2)
@@ -410,6 +408,7 @@ class MyClass(GeneratedClass):
                     system = ALProxy("ALSystem")
                     system.setRobotName(value)
                     time.sleep(0.3)
+                    self.logger.info("robotname=success")
                 except:
                     pass
             elif(body == "System"):
@@ -470,7 +469,7 @@ class MyClass(GeneratedClass):
                                                 <Parameter name="Conmunication_Port_2" inherits_from_parent="1" content_type="1" value="47398" default_value="47301" min="3000" max="80000" tooltip="" id="5" />
                                                 <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.02" default_value="0.2" min="0" max="1" tooltip="" id="6" />
                                             </Box>
-                                            <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="339" y="50">
+                                            <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="493" y="34">
                                                 <bitmap>media/images/box/interaction/say.png</bitmap>
                                                 <script language="4">
                                                     <content>
