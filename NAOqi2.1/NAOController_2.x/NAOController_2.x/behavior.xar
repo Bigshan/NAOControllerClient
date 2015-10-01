@@ -109,7 +109,8 @@ class MyClass(GeneratedClass):
         if(isRobotics == 1):
             self.logger.info("=======1")
             try:
-                stiffness = self.motion.getStiffnesses("Body")
+                info = self.motion.getStiffnesses("Body")
+                stiffness = info[0]
             except :
                 stiffness = 0
             try:
@@ -248,7 +249,8 @@ class MyClass(GeneratedClass):
         if(isRobotics == 1):
             try:
                 volume = self.audio.getOutputVolume()
-                stiffness = self.motion.getStiffnesses("Body")
+                info = self.motion.getStiffnesses("Body")
+                stiffness = info[0]
             except :
                 volume = 0
                 stiffness = 0
@@ -361,7 +363,7 @@ class MyClass(GeneratedClass):
             header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
             walkX = walkX/167772160.0
             walkY = walkY/167772160.0
-            currentYaw = self.motion.getAngles("HeadYaw",False)
+            currentYaw = self.motion.getAngles("HeadYaw",Falstiffness = self.motion.getStiffnesses("Body")se)
             currentPitch = self.motion.getAngles("HeadPitch",False)
             if(walkX>0 and currentPitch[0]<=0.326):
                 self.motion.changeAngles("HeadPitch",walkX,0.2)
@@ -407,6 +409,7 @@ class MyClass(GeneratedClass):
                 try:
                     system = ALProxy("ALSystem")
                     system.setRobotName(value)
+                    time.sleep(0.3)
                 except:
                     pass
             elif(body == "System"):
