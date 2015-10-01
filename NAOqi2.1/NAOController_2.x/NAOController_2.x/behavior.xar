@@ -252,7 +252,7 @@ class MyClass(GeneratedClass):
             isRobotics = 0
         if(isRobotics == 1):
             try:
-                volume = self.audio.getOutputVolume()/10
+                volume = self.audio.getOutputVolume()
                 stiffness = self.motion.getStiffnesses("Body")
             except :
                 volume = 0
@@ -271,8 +271,7 @@ class MyClass(GeneratedClass):
         for i in languageList:
             supportLanguage += i
             supportLanguage += "$"
-        #robotInfo = struct.pack('!15s20s200s20s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
-        robotInfo = struct.pack('!15s20s200s20s4h',header,currentLanguage,supportLanguage,"rfed",1,1,1,9)
+        robotInfo = struct.pack('!15s20s200s20s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
         self.sock.sendto(robotInfo,(self.addr, self.port))]]>
 </content>
                                                 </script>
@@ -334,6 +333,7 @@ class MyClass(GeneratedClass):
         self.memory = ALProxy("ALMemory")
         self.motion = ALProxy("ALMotion")
         self.postureProxy = ALProxy("ALRobotPosture")
+        self.tts = ALProxy("ALTextToSpeech")
         self.startSocket()
     def onLoad(self):
         self.bstart = True
@@ -379,6 +379,52 @@ class MyClass(GeneratedClass):
             self.sock.sendto(struct.pack('!16s20s',"SpeechMsg",targetIP),(self.addr,47396))
             self.logger.info("ip=======%s",self.addr)
             self.outputText(content)
+        elif(self.msg.startswith('SettingsMsg',0,16)):
+            header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
+            targetIP = self.getString(info1)
+            body = self.getString(info2)
+            value = self.getString(info3)
+            if(body == "Stiffness"):
+                self.logger.info("stiffness=======%f",float(value)/10.0)
+                self.motion.post.stiffnessInterpolation("Body",float(value)/10.0, 0.1)
+            elif(body == "Volume"):
+                self.logger.info("vlume=======%d",int(value))
+                try:
+                    audio = ALProxy("ALAudioDevice")
+                    audio.setOutputVolume(int(value))
+                except:
+                    pass
+            elif(body == "Language"):
+                self.logger.info("language=======%s",value)
+                self.tts.setLanguage(value)
+            elif(body == "RobotName"):
+                self.logger.info("robotname=======%s",value)
+                try:
+                    system = ALProxy("ALSystem")
+                    system.setRobotName(value)
+                except:
+                    pass
+            elif(body == "System"):
+                self.logger.info("system=======%s",value)
+                try:
+                    system = ALProxy("ALSystem")
+                    if(value == "reboot"):
+                        system.reboot()
+                    elif(value == "shutdown"):
+                        system.shutdown()
+                except:
+                  pass
+        elif(self.msg.startswith('BehaviorMsg',0,16)):
+            header,info1,info2,info3 = struct.unpack("!16s20s20s100s",self.msg)
+            targetIP = self.getString(info1)
+            body = self.getString(info2)
+            behavior = self.getString(info3)
+            if(body == "start"):
+                pass
+            elif(body == "stop"):
+                pass
+            elif(body == "stopall"):
+                pass
         else:
             self.logger.info(self.msg)
     def getString(self,p):
