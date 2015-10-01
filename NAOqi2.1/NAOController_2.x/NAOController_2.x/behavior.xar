@@ -427,13 +427,15 @@ class MyClass(GeneratedClass):
             if(body == "start"):
                 self.logger.info("start=======%s",behavior)
                 self.managerProxy.post.runBehavior(behavior)
-                time.sleep(1.0)
+                while(!self.managerProxy.isBehaviorRunning(behavior)):
+                    time.sleep(0.5)
                 self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
             elif(body == "stop"):
                 self.logger.info("stop=======%s",behavior)
                 if (self.managerProxy.isBehaviorRunning(behavior)):
                     self.managerProxy.stopBehavior(behavior)
-                    time.sleep(1.0)
+                    while(self.managerProxy.isBehaviorRunning(behavior)):
+                        time.sleep(0.5)
                     self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
             elif(body == "stopall"):
                 self.managerProxy.stopAllBehaviors()
