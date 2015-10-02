@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="2.0.0" uuid="naocontrollerclient">
+ <names>
+  <name lang="en_US">NAOControllerClient</name>
+ </names>
+ <descriptions>
+  <description lang="en_US">version 2.0</description>
+ </descriptions>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="NAOControllerClient">
+   <nature></nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

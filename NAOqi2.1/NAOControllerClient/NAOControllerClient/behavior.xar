@@ -15,7 +15,7 @@
             <BehaviorLayer name="behavior_layer1">
                 <BehaviorKeyframe name="keyframe1" index="1">
                     <Diagram>
-                        <Box name="NAO Controller for IOS" id="2" localization="8" tooltip="Enter tooltip here" x="377" y="110">
+                        <Box name="NAO Controller Client" id="2" localization="8" tooltip="version 2.0" x="299" y="95">
                             <bitmap>media/images/box/box-diagram.png</bitmap>
                             <script language="4">
                                 <content>
@@ -26,7 +26,7 @@
                             <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                             <Timeline enable="1" fps="25" start_frame="1" end_frame="-1" size="-1">
-                                <BehaviorLayer name="Communication">
+                                <BehaviorLayer name="Online Info">
                                     <BehaviorKeyframe name="OnlineInfo" index="1">
                                         <Diagram>
                                             <Box name="Stop" id="2" localization="8" tooltip="Stop the parent timeline at the current frame index.&#x0A;&#x0A;!!Warning!! This box does not stop the behavior! It is only the timeline which will&#x0A;stop playing, the keyframes and boxes will still be running." x="351" y="40">
@@ -47,7 +47,7 @@
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                                                 <Input name="onStop" type="1" type_size="1" nature="1" inner="0" tooltip="Parent timeline stops when a signal is received on this input." id="2" />
                                             </Box>
-                                            <Box name="OnlineInfo" id="3" localization="8" tooltip="Enter tooltip here" x="381" y="158">
+                                            <Box name="OnlineInfo" id="3" localization="8" tooltip="by shiqishan" x="381" y="158">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -140,10 +140,10 @@ class MyClass(GeneratedClass):
                                         </Diagram>
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
-                                <BehaviorLayer name="Say">
+                                <BehaviorLayer name="ReqAndRes">
                                     <BehaviorKeyframe name="ReqAndRes" index="1">
                                         <Diagram>
-                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="Enter tooltip here" x="83" y="49">
+                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="by shiqishan" x="83" y="49">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -310,12 +310,12 @@ class MyClass(GeneratedClass):
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
                                 <BehaviorLayer name="Behavior Cilent">
-                                    <BehaviorKeyframe name="selection_off" index="1">
+                                    <BehaviorKeyframe name="Selection_off" index="1">
                                         <Diagram />
                                     </BehaviorKeyframe>
-                                    <BehaviorKeyframe name="selection_on" index="20">
+                                    <BehaviorKeyframe name="Selection_on" index="20">
                                         <Diagram>
-                                            <Box name="Action Cilent" id="3" localization="8" tooltip="Motion Cilent by shiqishan" x="324" y="41">
+                                            <Box name="Behavior Cilent" id="3" localization="8" tooltip="Behavior Cilent by shiqishan" x="324" y="41">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -466,8 +466,7 @@ class MyClass(GeneratedClass):
                                                 <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                                 <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="4" />
-                                                <Parameter name="Conmunication_Port_2" inherits_from_parent="1" content_type="1" value="47398" default_value="47301" min="3000" max="80000" tooltip="" id="5" />
-                                                <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.02" default_value="0.2" min="0" max="1" tooltip="" id="6" />
+                                                <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.02" default_value="0.2" min="0" max="1" tooltip="" id="5" />
                                             </Box>
                                             <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="493" y="34">
                                                 <bitmap>media/images/box/interaction/say.png</bitmap>
