@@ -215,6 +215,8 @@ class MyClass(GeneratedClass):
             i = i.rstrip("/.")
             runingBehaviors += i
             runingBehaviors += "$"
+            if len(runingBehaviors) >3900:
+                    break
         for i in behaviorList:
             if i.count(".currentChoregrapheBehavior"):
                 pass
@@ -231,6 +233,8 @@ class MyClass(GeneratedClass):
             else:
                 installBehaviors += i
                 installBehaviors += "$"
+                if len(installBehaviors) >3900:
+                    break
         robotInfo = struct.pack('!15s4000s4000s',header,runingBehaviors,installBehaviors)
         self.sock.sendto(robotInfo,(self.addr, self.port))
     def sendSettingsMsg(self):
@@ -266,7 +270,9 @@ class MyClass(GeneratedClass):
         for i in languageList:
             supportLanguage += i
             supportLanguage += "$"
-        robotInfo = struct.pack('!15s20s200s20s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
+            if len(supportLanguage) >360:
+                    break
+        robotInfo = struct.pack('!15s40s400s45s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
         self.sock.sendto(robotInfo,(self.addr, self.port))]]>
 </content>
                                                 </script>
