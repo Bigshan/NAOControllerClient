@@ -9,5 +9,7 @@
         <File name="icon" src="icon.png" />
     </Resources>
     <Topics />
-    <IgnoredPaths />
+    <IgnoredPaths>
+        <Path src=".DS_Store" />
+    </IgnoredPaths>
 </Package>
