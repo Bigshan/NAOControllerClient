@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<package version="2.0.0" uuid="naocontrollerclient">
+<package version="2.0.0" uuid="by-qishanshi">
  <names>
   <name lang="en_US">NAOControllerClient</name>
  </names>
