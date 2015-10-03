@@ -272,7 +272,7 @@ class MyClass(GeneratedClass):
             supportLanguage += "$"
             if len(supportLanguage) >360:
                     break
-        robotInfo = struct.pack('!15s40s400s45s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
+        robotInfo = struct.pack('!15s40s400s40s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
         self.sock.sendto(robotInfo,(self.addr, self.port))]]>
 </content>
                                                 </script>
