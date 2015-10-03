@@ -413,8 +413,13 @@ class MyClass(GeneratedClass):
                 try:
                     system = ALProxy("ALSystem")
                     system.setRobotName(value)
-                    time.sleep(0.3)
-                    self.logger.info("robotname=success")
+                    count = 0
+                    while(count<=3):
+                        time.sleep(0.9)
+                        count += 1
+                        if (system.robotName()==value):
+                            self.sock.sendto(struct.pack('!16s20s',"NameConfirm",targetIP),(self.addr,47396))
+                            break
                 except:
                     pass
             elif(body == "System"):
@@ -436,21 +441,25 @@ class MyClass(GeneratedClass):
                 self.logger.info("start=======%s",behavior)
                 self.managerProxy.post.runBehavior(behavior)
                 if (targetIP != "255.255.255.255"):
-                    while(True):
+                    count = 0
+                    while(count <= 10):
                         time.sleep(0.5)
+                        count += 1
                         if (self.managerProxy.isBehaviorRunning(behavior)):
+                            self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
                             break
-                    self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
             elif(body == "stop"):
                 self.logger.info("stop=======%s",behavior)
                 if (self.managerProxy.isBehaviorRunning(behavior)):
                     self.managerProxy.stopBehavior(behavior)
                     if (targetIP != "255.255.255.255"):
-                        while(True):
+                        count = 0
+                        while(count <= 10):
                             time.sleep(0.5)
+                            count += 1
                             if not(self.managerProxy.isBehaviorRunning(behavior)):
+                                self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
                                 break
-                    self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
             elif(body == "stopall"):
                 self.managerProxy.stopAllBehaviors()
                 time.sleep(1.0)
