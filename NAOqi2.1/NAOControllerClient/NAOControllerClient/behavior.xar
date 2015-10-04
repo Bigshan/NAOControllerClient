@@ -78,11 +78,10 @@ class MyClass(GeneratedClass):
         while(self.bstart):
             try:
                 self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
-                self.logger.info("get recv")
                 self.msg_unpack()
             except :
-                self.logger.info("bug????")
-            pass
+                self.logger.info("onlineInfo bug....")
+                pass
     def onInput_onStop(self):
         self.onUnload()
     def startSocket(self):
@@ -107,7 +106,6 @@ class MyClass(GeneratedClass):
         except:
             isRobotics = 0
         if(isRobotics == 1):
-            self.logger.info("=======1")
             try:
                 info = self.motion.getStiffnesses("Body")
                 stiffness = info[0]
@@ -121,7 +119,6 @@ class MyClass(GeneratedClass):
                 pass
 
         else:
-            self.logger.info("=======0")
             stiffness = 0
         isSelected = self.memory.getData("Selected")
         robotInfo = struct.pack('!15s20s10s3h',header,name,version,isRobotics,stiffness,isSelected)
@@ -175,10 +172,9 @@ class MyClass(GeneratedClass):
         while(self.bstart):
             try:
                 self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
-                self.logger.info("get recv")
                 self.msg_unpack()
             except :
-                self.logger.info("bug????")
+                self.logger.info("req bug.....")
             pass
     def onInput_onStop(self):
         self.onUnload()
@@ -377,7 +373,6 @@ class MyClass(GeneratedClass):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
             if(walkY<=0 and currentYaw[0]>=-2.07):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
-
         elif(self.msg.startswith('PostureMsg',0,16)):
             header,info = struct.unpack("!16s16s",self.msg)
             posture = self.getString(info)
@@ -388,7 +383,6 @@ class MyClass(GeneratedClass):
             targetIP = self.getString(info1)
             content = self.getString(info2)
             self.sock.sendto(struct.pack('!16s20s',"SpeechMsg",targetIP),(self.addr,47396))
-            self.logger.info("ip=======%s",self.addr)
             self.outputText(content)
         elif(self.msg.startswith('SettingsMsg',0,16)):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
@@ -396,20 +390,16 @@ class MyClass(GeneratedClass):
             body = self.getString(info2)
             value = self.getString(info3)
             if(body == "Stiffness"):
-                self.logger.info("stiffness=======%f",float(value)/10.0)
                 self.motion.post.stiffnessInterpolation("Body",float(value)/10.0, 0.1)
             elif(body == "Volume"):
-                self.logger.info("vlume=======%d",int(value))
                 try:
                     audio = ALProxy("ALAudioDevice")
                     audio.setOutputVolume(int(value))
                 except:
                     pass
             elif(body == "Language"):
-                self.logger.info("language=======%s",value)
                 self.tts.setLanguage(value)
             elif(body == "RobotName"):
-                self.logger.info("robotname=======%s",value)
                 try:
                     system = ALProxy("ALSystem")
                     system.setRobotName(value)
@@ -423,7 +413,6 @@ class MyClass(GeneratedClass):
                 except:
                     pass
             elif(body == "System"):
-                self.logger.info("system=======%s",value)
                 try:
                     system = ALProxy("ALSystem")
                     if(value == "reboot"):
@@ -431,14 +420,13 @@ class MyClass(GeneratedClass):
                     elif(value == "shutdown"):
                         system.shutdown()
                 except:
-                  pass
+                    pass
         elif(self.msg.startswith('BehaviorMsg',0,16)):
             header,info1,info2,info3 = struct.unpack("!16s20s20s100s",self.msg)
             targetIP = self.getString(info1)
             body = self.getString(info2)
             behavior = self.getString(info3)
             if(body == "start"):
-                self.logger.info("start=======%s",behavior)
                 self.managerProxy.post.runBehavior(behavior)
                 if (targetIP != "255.255.255.255"):
                     count = 0
@@ -449,7 +437,6 @@ class MyClass(GeneratedClass):
                             self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
                             break
             elif(body == "stop"):
-                self.logger.info("stop=======%s",behavior)
                 if (self.managerProxy.isBehaviorRunning(behavior)):
                     self.managerProxy.stopBehavior(behavior)
                     if (targetIP != "255.255.255.255"):
@@ -463,11 +450,10 @@ class MyClass(GeneratedClass):
             elif(body == "stopall"):
                 self.managerProxy.stopAllBehaviors()
                 time.sleep(1.0)
-                self.logger.info("stop======= all")
                 if (targetIP != "255.255.255.255"):
                     self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
         else:
-            self.logger.info(self.msg)
+            pass
     def getString(self,p):
         string = []
         string = p.split('*|')
