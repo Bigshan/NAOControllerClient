@@ -1,2 +1,4 @@
 # NAOControllerClient
-The CRG file for the iOS APP:NAO Controller
+#Operation demo video
+  iPhone:http://v.youku.com/v_show/id_XMTM1MTk2NDY2OA==.html
+  iPad:http://v.youku.com/v_show/id_XMTM1MTk2NzAzMg==.html
