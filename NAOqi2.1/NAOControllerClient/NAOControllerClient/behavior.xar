@@ -15,7 +15,7 @@
             <BehaviorLayer name="behavior_layer1">
                 <BehaviorKeyframe name="keyframe1" index="1">
                     <Diagram>
-                        <Box name="NAO Controller Client" id="2" localization="8" tooltip="version 2.0" x="299" y="95">
+                        <Box name="NAO Controller Client (1)" id="1" localization="8" tooltip="version 2.0" x="242" y="336">
                             <bitmap>media/images/box/box-diagram.png</bitmap>
                             <script language="4">
                                 <content>
@@ -25,6 +25,7 @@
                             <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                             <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Parameter name="waitTime" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5" tooltip="" id="4" />
                             <Timeline enable="1" fps="25" start_frame="1" end_frame="-1" size="-1">
                                 <BehaviorLayer name="Online Info">
                                     <BehaviorKeyframe name="OnlineInfo" index="1">
@@ -340,6 +341,7 @@ class MyClass(GeneratedClass):
         self.bstart = False
     def onInput_onStart(self):
         self.threadtime = self.getParameter("threadtime")
+        self.waitYime = self.getParameter("waitTime")
         while(self.bstart):
             self.msg,(self.addr, self.port) = self.sock.recvfrom( 500 )
             self.msg_unpack()
@@ -427,6 +429,9 @@ class MyClass(GeneratedClass):
             body = self.getString(info2)
             behavior = self.getString(info3)
             if(body == "start"):
+                if (targetIP == "255.255.255.255"):
+                    self.managerProxy.preloadBehavior(behavior)
+                    time.sleep(self.waitYime)
                 self.managerProxy.post.runBehavior(behavior)
                 if (targetIP != "255.255.255.255"):
                     count = 0
@@ -468,6 +473,7 @@ class MyClass(GeneratedClass):
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                                 <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="4" />
                                                 <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.02" default_value="0.2" min="0" max="1" tooltip="" id="5" />
+                                                <Parameter name="waitTime" inherits_from_parent="1" content_type="2" value="1" default_value="1" min="0" max="5" tooltip="" id="6" />
                                             </Box>
                                             <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="493" y="34">
                                                 <bitmap>media/images/box/interaction/say.png</bitmap>
@@ -531,7 +537,7 @@ class MyClass(GeneratedClass):
                                 </BehaviorLayer>
                             </Timeline>
                         </Box>
-                        <Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" />
                     </Diagram>
                 </BehaviorKeyframe>
             </BehaviorLayer>
