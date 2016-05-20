@@ -27,121 +27,10 @@
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                             <Parameter name="waitTime" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5" tooltip="" id="4" />
                             <Timeline enable="1" fps="25" start_frame="1" end_frame="-1" size="-1">
-                                <BehaviorLayer name="Online Info">
-                                    <BehaviorKeyframe name="OnlineInfo" index="1">
-                                        <Diagram>
-                                            <Box name="Stop" id="2" localization="8" tooltip="Stop the parent timeline at the current frame index.&#x0A;&#x0A;!!Warning!! This box does not stop the behavior! It is only the timeline which will&#x0A;stop playing, the keyframes and boxes will still be running." x="351" y="40">
-                                                <bitmap>media/images/box/box-timeLine.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[class MyClass(GeneratedClass):
-    def __init__(self):
-        try: # disable autoBind
-          GeneratedClass.__init__(self, False)
-        except TypeError: # if NAOqi < 1.14
-          GeneratedClass.__init__( self )
-
-    def onInput_onStop(self):
-        self.stopTimelineParent()]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="onStop" type="1" type_size="1" nature="1" inner="0" tooltip="Parent timeline stops when a signal is received on this input." id="2" />
-                                            </Box>
-                                            <Box name="OnlineInfo" id="3" localization="8" tooltip="by shiqishan" x="381" y="158">
-                                                <bitmap>media/images/box/box-diagram.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[import socket
-import struct
-import time
-class MyClass(GeneratedClass):
-    def __init__(self):
-        GeneratedClass.__init__(self)
-        self.motion = ALProxy("ALMotion")
-        self.memory = ALProxy("ALMemory")
-        try:
-            self.audio = ALProxy("ALAudioDevice")
-        except :
-            self.audio = ALProxy("ALAudioPlayer")
-    def onLoad(self):
-        self.bstart = True
-        self.config = False
-    def onUnload(self):
-        self.bstart = False
-        self.sock.close()
-    def onInput_onStart(self):
-        self.SendPort = self.getParameter("SendPort")
-        self.RecvPort = self.getParameter("RecvPort")
-        self.threadtime = self.getParameter("threadtime")
-        self.memory.insertData("Selected",0)
-        self.startSocket()
-        while(self.bstart):
-            try:
-                self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
-                self.msg_unpack()
-            except :
-                self.logger.info("onlineInfo bug....")
-                pass
-    def onInput_onStop(self):
-        self.onUnload()
-    def startSocket(self):
-        self.desc = ('<broadcast>',self.SendPort)
-        self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
-        self.sock.bind( ('',self.RecvPort))
-    def msg_unpack(self):
-        if self.msg == "OnlineReq":
-            self.sendOnlineMsg()
-        else:
-            pass
-
-    def sendOnlineMsg(self):
-        header = "OnlineRes"
-        name = " "
-        version = " "
-        try:
-            volume = self.audio.getOutputVolume()
-            isRobotics = 1
-        except:
-            isRobotics = 0
-        if(isRobotics == 1):
-            try:
-                info = self.motion.getStiffnesses("Body")
-                stiffness = info[0]
-            except :
-                stiffness = 0
-            try:
-                system = ALProxy("ALSystem")
-                name = system.robotName()
-                version = system.systemVersion()
-            except :
-                pass
-
-        else:
-            stiffness = 0
-        isSelected = self.memory.getData("Selected")
-        robotInfo = struct.pack('!15s20s10s3h',header,name,version,isRobotics,stiffness,isSelected)
-        self.sock.sendto(robotInfo,(self.addr, self.port))]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                                                <Parameter name="SendPort" inherits_from_parent="1" content_type="1" value="47391" default_value="47316" min="47300" max="47399" tooltip="" id="4" />
-                                                <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.5" default_value="1" min="0" max="5" tooltip="" id="5" />
-                                                <Parameter name="RecvPort" inherits_from_parent="0" content_type="1" value="47391" default_value="47399" min="47390" max="47399" tooltip="" id="6" />
-                                            </Box>
-                                            <Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                        </Diagram>
-                                    </BehaviorKeyframe>
-                                </BehaviorLayer>
                                 <BehaviorLayer name="ReqAndRes">
                                     <BehaviorKeyframe name="ReqAndRes" index="1">
                                         <Diagram>
-                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="by shiqishan" x="83" y="49">
+                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="by shiqishan" x="218" y="234">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -155,10 +44,8 @@ class MyClass(GeneratedClass):
         self.memory = ALProxy("ALMemory")
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
-        try:
-            self.audio = ALProxy("ALAudioDevice")
-        except :
-            self.audio = ALProxy("ALAudioPlayer")
+        self.SendPort = 47396
+        self.RecvPort = 47399
     def onLoad(self):
         self.bstart = True
         self.config = False
@@ -166,9 +53,6 @@ class MyClass(GeneratedClass):
         self.bstart = False
         self.sock.close()
     def onInput_onStart(self):
-        self.SendPort = self.getParameter("SendPort")
-        self.RecvPort = self.getParameter("RecvPort")
-        self.threadtime = self.getParameter("threadtime")
         self.startSocket()
         while(self.bstart):
             try:
@@ -194,26 +78,20 @@ class MyClass(GeneratedClass):
                 self.sendSettingsMsg()
         elif self.msg == "ConfigON":
             self.config = True
-            self.memory.insertData("Selected",1)
+            self.memory.insertData("NAOControllerSelected",1)
             self.output(1)
         elif self.msg == "ConfigOFF":
             self.config = False
-            self.memory.insertData("Selected",0)
+            self.memory.insertData("NAOControllerSelected",0)
             self.output(0)
         else:
             pass
     def sendBehaviorMsg(self):
         header = "BehaviorRes"
+        defaultList = self.managerProxy.getDefaultBehaviors()
         behaviorList = self.managerProxy.getInstalledBehaviors()
         runingList = self.managerProxy.getRunningBehaviors()
-        runingBehaviors = ""
-        installBehaviors = ""
-        for i in runingList:
-            i = i.rstrip("/.")
-            runingBehaviors += i
-            runingBehaviors += "$"
-            if len(runingBehaviors) >3900:
-                    break
+        behaviors = ""
         for i in behaviorList:
             if i.count(".currentChoregrapheBehavior"):
                 pass
@@ -228,23 +106,26 @@ class MyClass(GeneratedClass):
             elif i.count("diagnostic"):
                 pass
             else:
-                installBehaviors += i
-                installBehaviors += "$"
-                if len(installBehaviors) >3900:
+                isDefault = "N"
+                isRuning = "N"
+                if defaultList.count(i):
+                    isDefault = "Y"
+                if runingList.count(i):
+                    isRuning = "Y"
+                i += isDefault
+                i += isRuning
+                behaviors += i
+                behaviors += "$"
+                if len(behaviors) >7900:
                     break
-        robotInfo = struct.pack('!15s4000s4000s',header,runingBehaviors,installBehaviors)
+        robotInfo = struct.pack('!15s8000s',header,behaviors)
         self.sock.sendto(robotInfo,(self.addr, self.port))
     def sendSettingsMsg(self):
         header = "SettingsRes"
         supportLanguage = ""
         isHighVersion = 0
         robotName = ""
-        try:
-            volume = self.audio.getOutputVolume()
-            isRobotics = 1
-        except:
-            volume = 0
-            isRobotics = 0
+        isRobotics = self.memory.getData("NAOControllerIsRobotics")
         if(isRobotics == 1):
             try:
                 volume = self.audio.getOutputVolume()
@@ -277,11 +158,8 @@ class MyClass(GeneratedClass):
                                                 <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                                 <Output name="output" type="2" type_size="1" nature="2" inner="0" tooltip="" id="4" />
-                                                <Parameter name="SendPort" inherits_from_parent="1" content_type="1" value="47396" default_value="47316" min="47300" max="47399" tooltip="" id="5" />
-                                                <Parameter name="threadtime" inherits_from_parent="1" content_type="2" value="0.5" default_value="1" min="0" max="5" tooltip="" id="6" />
-                                                <Parameter name="RecvPort" inherits_from_parent="0" content_type="1" value="47399" default_value="47399" min="47390" max="47399" tooltip="" id="7" />
                                             </Box>
-                                            <Box name="GotoAction" id="2" localization="8" tooltip="Enter tooltip here" x="248" y="89">
+                                            <Box name="GotoAction" id="2" localization="8" tooltip="Enter tooltip here" x="335" y="263">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -307,8 +185,106 @@ class MyClass(GeneratedClass):
                                                 <Input name="onStart" type="2" type_size="1" nature="1" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                             </Box>
+                                            <Box name="Stop" id="1" localization="8" tooltip="Stop the parent timeline at the current frame index.&#x0A;&#x0A;!!Warning!! This box does not stop the behavior! It is only the timeline which will&#x0A;stop playing, the keyframes and boxes will still be running." x="267" y="10">
+                                                <bitmap>media/images/box/box-timeLine.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        try: # disable autoBind
+          GeneratedClass.__init__(self, False)
+        except TypeError: # if NAOqi < 1.14
+          GeneratedClass.__init__( self )
+
+    def onInput_onStop(self):
+        self.stopTimelineParent()]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStop" type="1" type_size="1" nature="1" inner="0" tooltip="Parent timeline stops when a signal is received on this input." id="2" />
+                                            </Box>
+                                            <Box name="OnlineInfo" id="4" localization="8" tooltip="by shiqishan" x="212" y="85">
+                                                <bitmap>media/images/box/box-diagram.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import socket
+import struct
+import time
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        self.memory = ALProxy("ALMemory")
+        self.SendPort = 47391
+        self.RecvPort = 47391
+    def onLoad(self):
+        self.bstart = True
+        self.config = False
+    def onUnload(self):
+        self.bstart = False
+        self.sock.close()
+    def onInput_onStart(self):
+        try:
+            audio = ALProxy("ALAudioDevice")
+            self.memory.insertData("NAOControllerIsRobotics",1)
+        except:
+            self.memory.insertData("NAOControllerIsRobotics",0)
+        self.memory.insertData("NAOControllerSelected",0)
+        self.startSocket()
+        while(self.bstart):
+            try:
+                self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
+                self.msg_unpack()
+            except Exception as e:
+                self.logger.info("online error:%s",e)
+                pass
+    def onInput_onStop(self):
+        self.onUnload()
+    def startSocket(self):
+        self.desc = ('<broadcast>',self.SendPort)
+        self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
+        self.sock.bind( ('',self.RecvPort))
+    def msg_unpack(self):
+        if self.msg == "OnlineReq":
+            self.sendOnlineMsg()
+        else:
+            pass
+
+    def sendOnlineMsg(self):
+        header = "OnlineRes"
+        name = "*Simulator*"
+        version = " "
+        behaviorVersion = 30
+        batteryCharge = 0
+        header = header + str(behaviorVersion)
+        isRobotics = self.memory.getData("NAOControllerIsRobotics")
+        if(isRobotics == 1):
+            try:
+                system = ALProxy("ALSystem")
+                name = system.robotName()
+                version = system.systemVersion()
+            except :
+                pass
+            try:
+                battery = ALProxy("ALBattery")
+                batteryCharge = battery.getBatteryCharge()
+            except :
+                pass
+        isSelected = self.memory.getData("NAOControllerSelected")
+        #robotInfo = struct.pack('!15s20s10s3h',header,name,version,isRobotics,batteryCharge,isSelected)
+        robotInfo = struct.pack('!15s20s10s3h',header,name,version,1,18,isSelected)
+        self.sock.sendto(robotInfo,(self.addr, self.port))]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                            </Box>
                                             <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
                                             <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="1" />
+                                            <Link inputowner="4" indexofinput="2" outputowner="0" indexofoutput="1" />
                                         </Diagram>
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
@@ -333,6 +309,9 @@ class MyClass(GeneratedClass):
         self.postureProxy = ALProxy("ALRobotPosture")
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
+        self.SendPort = 47396
+        self.RecvPort = 47398
+        self.threadtime = 0.02
         self.startSocket()
     def onLoad(self):
         self.bstart = True
@@ -352,7 +331,7 @@ class MyClass(GeneratedClass):
     def startSocket(self):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.bind( ('',47398))
+        self.sock.bind( ('',self.RecvPort))
     def msg_unpack(self):
         if(self.msg.startswith('WalkMsg',0,16)):
             header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
@@ -384,7 +363,7 @@ class MyClass(GeneratedClass):
             header,info1,info2 = struct.unpack("!16s20s412s",self.msg)
             targetIP = self.getString(info1)
             content = self.getString(info2)
-            self.sock.sendto(struct.pack('!16s20s',"SpeechMsg",targetIP),(self.addr,47396))
+            self.sock.sendto(struct.pack('!16s20s',"SpeechMsg",targetIP),(self.addr,self.SendPort))
             self.outputText(content)
         elif(self.msg.startswith('SettingsMsg',0,16)):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
@@ -410,7 +389,7 @@ class MyClass(GeneratedClass):
                         time.sleep(0.9)
                         count += 1
                         if (system.robotName()==value):
-                            self.sock.sendto(struct.pack('!16s20s',"NameConfirm",targetIP),(self.addr,47396))
+                            self.sock.sendto(struct.pack('!16s20s',"NameConfirm",targetIP),(self.addr,self.SendPort))
                             break
                 except:
                     pass
@@ -439,7 +418,7 @@ class MyClass(GeneratedClass):
                         time.sleep(0.5)
                         count += 1
                         if (self.managerProxy.isBehaviorRunning(behavior)):
-                            self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
+                            self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
                             break
             elif(body == "stop"):
                 if (self.managerProxy.isBehaviorRunning(behavior)):
@@ -450,13 +429,17 @@ class MyClass(GeneratedClass):
                             time.sleep(0.5)
                             count += 1
                             if not(self.managerProxy.isBehaviorRunning(behavior)):
-                                self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
+                                self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
                                 break
             elif(body == "stopall"):
                 self.managerProxy.stopAllBehaviors()
                 time.sleep(1.0)
                 if (targetIP != "255.255.255.255"):
-                    self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,47396))
+                    self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
+            elif(body == "add"):
+                self.managerProxy.addDefaultBehavior(behavior)
+            elif(body == "remove"):
+                self.managerProxy.removeDefaultBehavior(behavior)
         else:
             pass
     def getString(self,p):
@@ -529,6 +512,80 @@ class MyClass(GeneratedClass):
                                                 <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" />
                                                 <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
                                                 <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
+                                            </Box>
+                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="209" y="345">
+                                                <bitmap>media/images/box/sensors/STM.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+        pass
+
+    def onLoad(self):
+        import threading
+        self.lock = threading.RLock()
+        self.signal = None
+        self.linkId = -1
+
+    def onUnload(self):
+        with self.lock:
+            self.unsubscribe()
+
+    def onInput_onStart(self):
+        with self.lock:
+            self.unsubscribe()
+            event = self.getParameter("event")
+
+            if(len(event) == 0):
+                self.onError("No event or signal given.")
+                return
+
+            params = event.split(".")
+            if(len(params) == 2):
+                try:
+                    self.signal = getattr(self.session().service(params[0]), params[1])
+                except Exception as e:
+                    mem = self.session().service("ALMemory")
+                    if(event in mem.getEventList()):
+                        self.signal = mem.subscriber(event).signal
+                    else:
+                        self.onError(event + ": no such service.signal pair found, and no such event declared in ALMemory. Aborting.")
+                        return
+            else:
+                self.signal = self.session().service("ALMemory").subscriber(event).signal
+
+            self.linkId = self.signal.connect(self.reemitSignal)
+
+    def onInput_onStop(self):
+        with self.lock:
+            self.unsubscribe()
+            self.onStopped()
+
+    def unsubscribe(self):
+        if(self.signal is not None and self.linkId != -1):
+            self.signal.disconnect(self.linkId)
+
+        del self.signal
+        self.signal = None
+        self.linkId = -1
+
+    def reemitSignal(self, *args):
+        if(len(args) == 0):
+            self.onEvent()
+        elif(len(args) == 1):
+            self.onEvent(args[0])
+        else:
+            self.onEvent(args)]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="When this input is activated, the box will try to subscribe to the signal or the event passed in the box parameter.&#x0A;&#x0A;If it is retriggered and the parameter has changed, the box will undo the previous subscription and subscribe to the new signal or the new event." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the box and cancel the subscription, if any." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                                                <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="This output is triggered when the box encounters an error, and contains the error message." id="5" />
+                                                <Output name="onEvent" type="0" type_size="1" nature="2" inner="0" tooltip="This output is triggered each time the signal/event to which the box is connected is emitted/raised. It will carry the payload associated with the signal emission/event raise." id="6" />
+                                                <Parameter name="event" inherits_from_parent="0" content_type="3" value="" default_value="" custom_choice="0" tooltip='This parameter describes the signal to connect to, and the service advertising this signal.&#x0A;&#x0A;Use the pattern &quot;Service.Signal&quot; to connect to a signal, or the event key to connect to an event.' id="7" />
                                             </Box>
                                             <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
                                             <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
