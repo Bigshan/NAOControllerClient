@@ -79,7 +79,6 @@ class MyClass(GeneratedClass):
         elif self.msg == "ConfigON":
             self.config = True
             self.memory.insertData("NAOControllerSelected",1)
-            self.memory.insertData("NAOControllerTargetIp",self.addr)
             self.output(1)
         elif self.msg == "ConfigOFF":
             self.config = False
@@ -220,6 +219,7 @@ class MyClass(GeneratedClass):
     def onLoad(self):
         self.bstart = True
         self.config = False
+        self.userList = []
     def onUnload(self):
         self.bstart = False
         self.sock.close()
@@ -249,6 +249,9 @@ class MyClass(GeneratedClass):
     def msg_unpack(self):
         if self.msg == "OnlineReq":
             self.sendOnlineMsg()
+            if not self.userList.count(self.addr):
+                self.userList.append(self.addr)
+                self.memory.insertData("NAOControllerUserList",self.userList)
         else:
             pass
 
@@ -411,30 +414,12 @@ class MyClass(GeneratedClass):
                     self.managerProxy.preloadBehavior(behavior)
                     time.sleep(1.0)
                 self.managerProxy.post.runBehavior(behavior)
-                if (targetIP != "255.255.255.255"):
-                    count = 0
-                    while(count <= 10):
-                        time.sleep(0.5)
-                        count += 1
-                        if (self.managerProxy.isBehaviorRunning(behavior)):
-                            self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
-                            break
             elif(body == "stop"):
                 if (self.managerProxy.isBehaviorRunning(behavior)):
                     self.managerProxy.stopBehavior(behavior)
-                    if (targetIP != "255.255.255.255"):
-                        count = 0
-                        while(count <= 10):
-                            time.sleep(0.5)
-                            count += 1
-                            if not(self.managerProxy.isBehaviorRunning(behavior)):
-                                self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
-                                break
             elif(body == "stopall"):
                 self.managerProxy.stopAllBehaviors()
                 time.sleep(1.0)
-                if (targetIP != "255.255.255.255"):
-                    self.sock.sendto(struct.pack('!16s20s20s100s',"BehaviorMsg",targetIP,body,behavior),(self.addr,self.SendPort))
             elif(body == "add"):
                 self.managerProxy.addDefaultBehavior(behavior)
             elif(body == "remove"):
@@ -537,6 +522,8 @@ class MyClass(GeneratedClass):
         pass
 
     def onInput_BehaviorRuning(self, p):
+        userList = []
+        userList = self.memory.getData("NAOControllerUserList")
         self.logger.info(p)
         header = "NCNotification_BehaviorsRun"
         runingBehaviors = ""
@@ -559,8 +546,12 @@ class MyClass(GeneratedClass):
                 if len(runingBehaviors) >7900:
                     break
         self.logger.info(runingBehaviors)
-        robotInfo = struct.pack('!45s5960s',header,runingBehaviors)
-        self.sock.sendto(robotInfo,self.desc)
+        robotInfo = struct.pack('!40s7960s',header,runingBehaviors)
+        if len(userList) == 1:
+            self.sock.sendto(robotInfo,(userList[0], self.SendPort))
+        else:
+            for ip in userList:
+                self.sock.sendto(robotInfo,(ip, self.SendPort))
 
     def onInput_onStop(self):
         self.onUnload()
@@ -569,7 +560,6 @@ class MyClass(GeneratedClass):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
-        self.desc = ('<broadcast>',self.SendPort)
 
     def getString(self,p):
         string = []
