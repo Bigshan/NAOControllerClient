@@ -216,6 +216,7 @@ class MyClass(GeneratedClass):
         self.memory = ALProxy("ALMemory")
         self.SendPort = 47391
         self.RecvPort = 47391
+        self.any = "0.0.0.0"
     def onLoad(self):
         self.bstart = True
         self.config = False
@@ -235,17 +236,20 @@ class MyClass(GeneratedClass):
             try:
                 self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
                 self.msg_unpack()
+                self.logger.info("online recv")
             except Exception as e:
                 self.logger.info("online error:%s",e)
                 pass
     def onInput_onStop(self):
         self.onUnload()
     def startSocket(self):
-        self.desc = ('<broadcast>',self.SendPort)
+        anyAddr = "0.0.0.0"
+        MCAST_ADDR = "227.168.1.1"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
-        self.sock.bind( ('',self.RecvPort))
+        self.sock.bind( (anyAddr,self.RecvPort))
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self):
         if self.msg == "OnlineReq":
             self.sendOnlineMsg()
