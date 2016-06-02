@@ -30,33 +30,42 @@
                                 <BehaviorLayer name="ReqAndRes">
                                     <BehaviorKeyframe name="ReqAndRes" index="1">
                                         <Diagram>
-                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="by shiqishan" x="218" y="234">
+                                            <Box name="ReqAndRes" id="3" localization="8" tooltip="by shiqishan" x="204" y="19">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
                                                         <![CDATA[import socket
 import struct
 import time
+import json
 class MyClass(GeneratedClass):
     def __init__(self):
         GeneratedClass.__init__(self)
         self.motion = ALProxy("ALMotion")
-        self.memory = ALProxy("ALMemory")
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
-        self.SendPort = 47396
-        self.RecvPort = 47399
+        self.SendPort = 47391
+        self.RecvPort = 47391
+        self.any = "0.0.0.0"
+        self.isRobotics = 0
+        self.isSelected = 0
     def onLoad(self):
         self.bstart = True
-        self.config = False
     def onUnload(self):
         self.bstart = False
         self.sock.close()
     def onInput_onStart(self):
+        self.stopTimelineParent()
+        try:
+            audio = ALProxy("ALAudioDevice")
+            self.isRobotics = 1
+        except:
+            self.isRobotics = 0
         self.startSocket()
         while(self.bstart):
             try:
                 self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
+                self.logger.info("req recv..%s",self.addr)
                 self.msg_unpack()
             except :
                 self.logger.info("req bug.....")
@@ -64,30 +73,53 @@ class MyClass(GeneratedClass):
     def onInput_onStop(self):
         self.onUnload()
     def startSocket(self):
-        self.desc = ('<broadcast>',self.SendPort)
+        anyAddr = "0.0.0.0"
+        MCAST_ADDR = "227.168.1.1"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
-        self.sock.bind( ('',self.RecvPort))
+        self.sock.bind( (anyAddr,self.RecvPort))
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self):
-        if self.msg == "BehaviorReq":
-            if self.config:
+        if self.msg == "NCOnlineReq":
+            self.sendOnlineMsg()
+        elif self.msg == "NCBehaviorReq":
+            if self.isSelected:
                 self.sendBehaviorMsg()
-        elif self.msg == "SettingsReq":
-            if self.config:
+        elif self.msg == "NCSettingsReq":
+            if self.isSelected:
                 self.sendSettingsMsg()
-        elif self.msg == "ConfigON":
-            self.config = True
-            self.memory.insertData("NAOControllerSelected",1)
-            self.output(1)
-        elif self.msg == "ConfigOFF":
-            self.config = False
-            self.memory.insertData("NAOControllerSelected",0)
-            self.output(0)
+        elif self.msg == "NCConfigON":
+            self.isSelected = 1
+            self.gotoState(20)
+        elif self.msg == "NCConfigOFF":
+            self.isSelected = 0
+            self.gotoState(0)
         else:
             pass
+    def sendOnlineMsg(self):
+        header = "NCOnlineRes"
+        name = "*Simulator*"
+        version = " "
+        behaviorVersion = 30
+        batteryCharge = 0
+        header = header + str(behaviorVersion)
+        if(self.isRobotics == 1):
+            try:
+                system = ALProxy("ALSystem")
+                name = system.robotName()
+                version = system.systemVersion()
+            except :
+                pass
+            try:
+                battery = ALProxy("ALBattery")
+                batteryCharge = battery.getBatteryCharge()
+            except :
+                pass
+        data = {"header":header,"name":name,"version":version,"isRobot":self.isRobotics,"battery":94,"isSelected":self.isSelected}
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
     def sendBehaviorMsg(self):
-        header = "BehaviorRes"
+        header = "NCBehaviorRes"
         defaultList = self.managerProxy.getDefaultBehaviors()
         behaviorList = self.managerProxy.getInstalledBehaviors()
         runingList = self.managerProxy.getRunningBehaviors()
@@ -118,15 +150,14 @@ class MyClass(GeneratedClass):
                 behaviors += "$"
                 if len(behaviors) >7900:
                     break
-        robotInfo = struct.pack('!15s8000s',header,behaviors)
-        self.sock.sendto(robotInfo,(self.addr, self.port))
+        data = {"header":header,"behaviors":behaviors}
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
     def sendSettingsMsg(self):
-        header = "SettingsRes"
+        header = "NCSettingsRes"
         supportLanguage = ""
         isHighVersion = 0
         robotName = ""
-        isRobotics = self.memory.getData("NAOControllerIsRobotics")
-        if(isRobotics == 1):
+        if(self.isRobotics == 1):
             try:
                 volume = self.audio.getOutputVolume()
                 info = self.motion.getStiffnesses("Body")
@@ -150,30 +181,9 @@ class MyClass(GeneratedClass):
             supportLanguage += "$"
             if len(supportLanguage) >360:
                     break
-        robotInfo = struct.pack('!15s40s400s40s4h',header,currentLanguage,supportLanguage,robotName,isRobotics,isHighVersion,stiffness,volume)
-        self.sock.sendto(robotInfo,(self.addr, self.port))]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                                                <Output name="output" type="2" type_size="1" nature="2" inner="0" tooltip="" id="4" />
-                                            </Box>
-                                            <Box name="GotoAction" id="2" localization="8" tooltip="Enter tooltip here" x="414" y="195">
-                                                <bitmap>media/images/box/box-diagram.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[class MyClass(GeneratedClass):
-    def __init__(self):
-        GeneratedClass.__init__(self)
-    def onLoad(self):
-        pass
-    def onUnload(self):
-        pass
-    def onInput_onStart(self, p):
-        self.gotoState(20*p)
-    def onInput_onStop(self):
-        self.onUnload()
+        robotInfo = struct.pack('!15s40s400s40s4h',header,currentLanguage,supportLanguage,robotName,self.isRobotics,isHighVersion,stiffness,volume)
+        self.sock.sendto(robotInfo,(self.addr, self.port))
+
     def gotoState(self,p):
         try:
             self.getParentTimeline().goTo(p)
@@ -182,117 +192,10 @@ class MyClass(GeneratedClass):
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="onStart" type="2" type_size="1" nature="1" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                                            </Box>
-                                            <Box name="Stop" id="1" localization="8" tooltip="Stop the parent timeline at the current frame index.&#x0A;&#x0A;!!Warning!! This box does not stop the behavior! It is only the timeline which will&#x0A;stop playing, the keyframes and boxes will still be running." x="208" y="12">
-                                                <bitmap>media/images/box/box-timeLine.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[class MyClass(GeneratedClass):
-    def __init__(self):
-        try: # disable autoBind
-          GeneratedClass.__init__(self, False)
-        except TypeError: # if NAOqi < 1.14
-          GeneratedClass.__init__( self )
-
-    def onInput_onStop(self):
-        self.stopTimelineParent()]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="onStop" type="1" type_size="1" nature="1" inner="0" tooltip="Parent timeline stops when a signal is received on this input." id="2" />
-                                            </Box>
-                                            <Box name="OnlineInfo" id="4" localization="8" tooltip="by shiqishan" x="215" y="127">
-                                                <bitmap>media/images/box/box-diagram.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[import socket
-import struct
-import time
-class MyClass(GeneratedClass):
-    def __init__(self):
-        GeneratedClass.__init__(self)
-        self.memory = ALProxy("ALMemory")
-        self.SendPort = 47391
-        self.RecvPort = 47391
-        self.any = "0.0.0.0"
-    def onLoad(self):
-        self.bstart = True
-        self.config = False
-        self.userList = []
-    def onUnload(self):
-        self.bstart = False
-        self.sock.close()
-    def onInput_onStart(self):
-        try:
-            audio = ALProxy("ALAudioDevice")
-            self.memory.insertData("NAOControllerIsRobotics",1)
-        except:
-            self.memory.insertData("NAOControllerIsRobotics",0)
-        self.memory.insertData("NAOControllerSelected",0)
-        self.startSocket()
-        while(self.bstart):
-            try:
-                self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
-                self.msg_unpack()
-                self.logger.info("online recv")
-            except Exception as e:
-                self.logger.info("online error:%s",e)
-                pass
-    def onInput_onStop(self):
-        self.onUnload()
-    def startSocket(self):
-        anyAddr = "0.0.0.0"
-        MCAST_ADDR = "227.168.1.1"
-        self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.bind( (anyAddr,self.RecvPort))
-        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
-        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
-    def msg_unpack(self):
-        if self.msg == "OnlineReq":
-            self.sendOnlineMsg()
-            if not self.userList.count(self.addr):
-                self.userList.append(self.addr)
-                self.memory.insertData("NAOControllerUserList",self.userList)
-        else:
-            pass
-
-    def sendOnlineMsg(self):
-        header = "OnlineRes"
-        name = "*Simulator*"
-        version = " "
-        behaviorVersion = 30
-        batteryCharge = 0
-        header = header + str(behaviorVersion)
-        isRobotics = self.memory.getData("NAOControllerIsRobotics")
-        if(isRobotics == 1):
-            try:
-                system = ALProxy("ALSystem")
-                name = system.robotName()
-                version = system.systemVersion()
-            except :
-                pass
-            try:
-                battery = ALProxy("ALBattery")
-                batteryCharge = battery.getBatteryCharge()
-            except :
-                pass
-        isSelected = self.memory.getData("NAOControllerSelected")
-        #robotInfo = struct.pack('!15s20s10s3h',header,name,version,isRobotics,batteryCharge,isSelected)
-        robotInfo = struct.pack('!15s20s10s3h',header,name,version,1,18,isSelected)
-        self.sock.sendto(robotInfo,(self.addr, self.port))]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                                                 <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                             </Box>
                                             <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
-                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="4" indexofinput="2" outputowner="0" indexofoutput="1" />
                                         </Diagram>
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
@@ -309,6 +212,7 @@ class MyClass(GeneratedClass):
                                                         <![CDATA[import socket
 import struct
 import time
+import json
 class MyClass(GeneratedClass):
     def __init__(self):
         GeneratedClass.__init__(self)
@@ -317,8 +221,7 @@ class MyClass(GeneratedClass):
         self.postureProxy = ALProxy("ALRobotPosture")
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
-        self.SendPort = 47396
-        self.RecvPort = 47398
+        self.RecvPort = 47392
         self.threadtime = 0.02
         self.startSocket()
     def onLoad(self):
@@ -330,7 +233,6 @@ class MyClass(GeneratedClass):
         while(self.bstart):
             self.msg,(self.addr, self.port) = self.sock.recvfrom( 500 )
             self.msg_unpack()
-            time.sleep(self.threadtime)
     def onInput_onStop(self):
         self.onUnload()
         self.sock.close()
@@ -339,6 +241,17 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( ('',self.RecvPort))
     def msg_unpack(self):
+        try:
+
+            msg = self.msg.encode('utf-8')
+            self.logger.info("msg...%s",msg)
+            dic = json.loads(msg)
+            self.logger.info(dic)
+            self.logger.info(dic[u'header'])
+            self.logger.info(dic["header"])
+        except:
+            self.logger.info("nimabi")
+            pass
         if(self.msg.startswith('WalkMsg',0,16)):
             header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
             walkX = walkX/167772160.0
@@ -369,7 +282,6 @@ class MyClass(GeneratedClass):
             header,info1,info2 = struct.unpack("!16s20s412s",self.msg)
             targetIP = self.getString(info1)
             content = self.getString(info2)
-            self.sock.sendto(struct.pack('!16s20s',"SpeechMsg",targetIP),(self.addr,self.SendPort))
             self.outputText(content)
         elif(self.msg.startswith('SettingsMsg',0,16)):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
@@ -390,13 +302,6 @@ class MyClass(GeneratedClass):
                 try:
                     system = ALProxy("ALSystem")
                     system.setRobotName(value)
-                    count = 0
-                    while(count<=3):
-                        time.sleep(0.9)
-                        count += 1
-                        if (system.robotName()==value):
-                            self.sock.sendto(struct.pack('!16s20s',"NameConfirm",targetIP),(self.addr,self.SendPort))
-                            break
                 except:
                     pass
             elif(body == "System"):
@@ -507,7 +412,7 @@ class MyClass(GeneratedClass):
                                 <BehaviorLayer name="Notification center">
                                     <BehaviorKeyframe name="Notification center" index="20">
                                         <Diagram>
-                                            <Box name="NotificationCenter" id="3" localization="8" tooltip="NotificationCenter by shiqishan" x="580" y="95">
+                                            <Box name="NotificationCenter" id="3" localization="8" tooltip="NotificationCenter by shiqishan" x="345" y="47">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -561,7 +466,7 @@ class MyClass(GeneratedClass):
         self.onUnload()
         self.sock.close()
     def startSocket(self):
-        self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+        self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 

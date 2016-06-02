@@ -10,7 +10,7 @@
     </Resources>
     <Topics />
     <IgnoredPaths>
-        <Path src=".metadata" />
         <Path src=".DS_Store" />
+        <Path src=".metadata" />
     </IgnoredPaths>
 </Package>
