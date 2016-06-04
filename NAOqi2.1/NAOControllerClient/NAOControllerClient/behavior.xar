@@ -64,35 +64,41 @@ class MyClass(GeneratedClass):
         self.startSocket()
         while(self.bstart):
             try:
-                self.msg,(self.addr, self.port) = self.sock.recvfrom( 20 )
-                self.logger.info("req recv..%s",self.addr)
-                self.msg_unpack()
-            except :
-                self.logger.info("req bug.....")
+                self.msg,(self.addr, self.port) = self.sock.recvfrom( 200 )
+                try:
+                    dic = json.loads(self.msg)
+                    header = str(dic["header"])
+                    if header == "NAOController":
+                        self.msg_unpack(dic)
+                except Exception as e:
+                    self.logger.info("%s..online..json..error.%s",self.msg,e)
+            except Exception as e:
+                self.logger.info("online..req..error..%s",e)
             pass
     def onInput_onStop(self):
         self.onUnload()
     def startSocket(self):
         anyAddr = "0.0.0.0"
-        MCAST_ADDR = "227.168.1.1"
+        MCAST_ADDR = "227.168.123.111"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( (anyAddr,self.RecvPort))
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
-    def msg_unpack(self):
-        if self.msg == "NCOnlineReq":
+    def msg_unpack(self, dic):
+        action = str(dic["action"])
+        if action == "NCOnlineReq":
             self.sendOnlineMsg()
-        elif self.msg == "NCBehaviorReq":
+        elif action == "NCBehaviorReq":
             if self.isSelected:
                 self.sendBehaviorMsg()
-        elif self.msg == "NCSettingsReq":
+        elif action == "NCSettingsReq":
             if self.isSelected:
                 self.sendSettingsMsg()
-        elif self.msg == "NCConfigON":
+        elif action == "NCConfigON":
             self.isSelected = 1
             self.gotoState(20)
-        elif self.msg == "NCConfigOFF":
+        elif action == "NCConfigOFF":
             self.isSelected = 0
             self.gotoState(0)
         else:
@@ -116,7 +122,7 @@ class MyClass(GeneratedClass):
                 batteryCharge = battery.getBatteryCharge()
             except :
                 pass
-        data = {"header":header,"name":name,"version":version,"isRobot":self.isRobotics,"battery":94,"isSelected":self.isSelected}
+        data = {"header":header,"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected}
         self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
     def sendBehaviorMsg(self):
         header = "NCBehaviorRes"
@@ -231,38 +237,40 @@ class MyClass(GeneratedClass):
         self.bstart = False
     def onInput_onStart(self):
         while(self.bstart):
-            self.msg,(self.addr, self.port) = self.sock.recvfrom( 500 )
-            self.msg_unpack()
+            try:
+                self.msg,(self.addr, self.port) = self.sock.recvfrom( 200 )
+                try:
+                    dic = json.loads(self.msg)
+                    header = str(dic["header"])
+                    if header == "NAOController":
+                        self.msg_unpack(dic)
+                except Exception as e:
+                    self.logger.info("%s..msg..json..error.%s",self.msg,e)
+            except Exception as e:
+                self.logger.info("msg..req..error..%s",e)
     def onInput_onStop(self):
         self.onUnload()
         self.sock.close()
     def startSocket(self):
+        anyAddr = "0.0.0.0"
+        MCAST_ADDR = "227.168.1.1"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.bind( ('',self.RecvPort))
-    def msg_unpack(self):
-        try:
-
-            msg = self.msg.encode('utf-8')
-            self.logger.info("msg...%s",msg)
-            dic = json.loads(msg)
-            self.logger.info(dic)
-            self.logger.info(dic[u'header'])
-            self.logger.info(dic["header"])
-        except:
-            self.logger.info("nimabi")
-            pass
-        if(self.msg.startswith('WalkMsg',0,16)):
-            header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
-            walkX = walkX/167772160.0
-            walkY = walkY/167772160.0
-            theta = theta/167772160.0
-            frequency = frequency/167772160.0
+        self.sock.bind( (anyAddr,self.RecvPort))
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
+    def msg_unpack(self, dic):
+        action = str(dic["action"])
+        self.logger.info("action...%s",action)
+        if(action == "WalkMsg"):
+            walkX = int(dic["x"])/10.0
+            walkY = int(dic["y"])/10.0
+            theta = int(dic["thera"])/10.0
+            frequency = int(dic["frequency"])/10.0
             self.motion.setWalkTargetVelocity(walkX,walkY,theta,frequency)
-        elif(self.msg.startswith('HeadMsg',0,16)):
-            header,walkX,walkY,theta,frequency = struct.unpack("!16s4i",self.msg)
-            walkX = walkX/167772160.0
-            walkY = walkY/167772160.0
+        elif(action == "HeadMsg"):
+            walkX = int(dic["x"])/10.0
+            walkY = int(dic["y"])/10.0
             currentYaw = self.motion.getAngles("HeadYaw",False)
             currentPitch = self.motion.getAngles("HeadPitch",False)
             if(walkX>0 and currentPitch[0]<=0.326):
@@ -273,17 +281,16 @@ class MyClass(GeneratedClass):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
             if(walkY<=0 and currentYaw[0]>=-2.07):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
-        elif(self.msg.startswith('PostureMsg',0,16)):
-            header,info = struct.unpack("!16s16s",self.msg)
-            posture = self.getString(info)
+        elif(action == "PostureMsg"):
+            posture = str(dic["posture"])
             self.postureProxy.setMaxTryNumber(2)
-            result = self.postureProxy.goToPosture(posture,0.6)
-        elif(self.msg.startswith('SpeechMsg',0,16)):
+            result = self.postureProxy.goToPosture(posture,0.7)
+        elif(action == "SpeechMsg"):
             header,info1,info2 = struct.unpack("!16s20s412s",self.msg)
             targetIP = self.getString(info1)
             content = self.getString(info2)
             self.outputText(content)
-        elif(self.msg.startswith('SettingsMsg',0,16)):
+        elif(action == "SettingsMsg"):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
             targetIP = self.getString(info1)
             body = self.getString(info2)
@@ -313,26 +320,20 @@ class MyClass(GeneratedClass):
                         system.shutdown()
                 except:
                     pass
-        elif(self.msg.startswith('BehaviorMsg',0,16)):
-            header,info1,info2,info3 = struct.unpack("!16s20s20s100s",self.msg)
-            targetIP = self.getString(info1)
-            body = self.getString(info2)
-            behavior = self.getString(info3)
-            if(body == "start"):
-                if (targetIP == "255.255.255.255"):
-                    self.managerProxy.preloadBehavior(behavior)
-                    time.sleep(1.0)
+        elif(action == "SingleBehaviorMsg"):
+            command = str(dic["command"])
+            behavior = str(dic["behavior"])
+            if(command == "start"):
                 self.managerProxy.post.runBehavior(behavior)
-            elif(body == "stop"):
+            elif(command == "stop"):
                 if (self.managerProxy.isBehaviorRunning(behavior)):
                     self.managerProxy.stopBehavior(behavior)
-            elif(body == "stopall"):
-                self.managerProxy.stopAllBehaviors()
-                time.sleep(1.0)
-            elif(body == "add"):
+            elif(command == "add"):
                 self.managerProxy.addDefaultBehavior(behavior)
-            elif(body == "remove"):
+            elif(command == "remove"):
                 self.managerProxy.removeDefaultBehavior(behavior)
+        elif(action == "MultiBehaviorMsg"):
+            pass
         else:
             pass
     def getString(self,p):
@@ -404,15 +405,7 @@ class MyClass(GeneratedClass):
                                                 <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
                                                 <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
                                             </Box>
-                                            <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
-                                        </Diagram>
-                                    </BehaviorKeyframe>
-                                </BehaviorLayer>
-                                <BehaviorLayer name="Notification center">
-                                    <BehaviorKeyframe name="Notification center" index="20">
-                                        <Diagram>
-                                            <Box name="NotificationCenter" id="3" localization="8" tooltip="NotificationCenter by shiqishan" x="345" y="47">
+                                            <Box name="NotificationCenter" id="1" localization="8" tooltip="NotificationCenter by shiqishan" x="531" y="164">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -424,6 +417,7 @@ class MyClass(GeneratedClass):
         GeneratedClass.__init__(self)
         self.memory = ALProxy("ALMemory")
         self.SendPort = 47392
+        self.notificationIp = "227.168.123.122"
         self.startSocket()
     def onLoad(self):
         pass
@@ -431,10 +425,9 @@ class MyClass(GeneratedClass):
         pass
 
     def onInput_BehaviorRuning(self, p):
-        userList = []
-        userList = self.memory.getData("NAOControllerUserList")
         self.logger.info(p)
-        header = "NCNotification_BehaviorsRun"
+        header = "NCNotification"
+        action = "BehaviorsRun"
         runingBehaviors = ""
         for i in p:
             if i.count(".currentChoregrapheBehavior"):
@@ -455,12 +448,8 @@ class MyClass(GeneratedClass):
                 if len(runingBehaviors) >7900:
                     break
         self.logger.info(runingBehaviors)
-        robotInfo = struct.pack('!40s7960s',header,runingBehaviors)
-        if len(userList) == 1:
-            self.sock.sendto(robotInfo,(userList[0], self.SendPort))
-        else:
-            for ip in userList:
-                self.sock.sendto(robotInfo,(ip, self.SendPort))
+        data = {"header":header,"action":action,"runBehaviors":runingBehaviors}
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.notificationIp, self.SendPort))
 
     def onInput_onStop(self):
         self.onUnload()
@@ -468,7 +457,6 @@ class MyClass(GeneratedClass):
     def startSocket(self):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 
     def getString(self,p):
         string = []
@@ -483,7 +471,7 @@ class MyClass(GeneratedClass):
                                                 <Input name="BehaviorRuning" type="0" type_size="1" nature="1" inner="0" tooltip="" id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
                                             </Box>
-                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="155" y="44">
+                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="325" y="158">
                                                 <bitmap>media/images/box/sensors/STM.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -557,9 +545,16 @@ class MyClass(GeneratedClass):
                                                 <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="This output is triggered when the box encounters an error, and contains the error message." id="6" />
                                                 <Parameter name="event" inherits_from_parent="0" content_type="3" value="BehaviorsRun" default_value="" custom_choice="0" tooltip='This parameter describes the signal to connect to, and the service advertising this signal.&#x0A;&#x0A;Use the pattern &quot;Service.Signal&quot; to connect to a signal, or the event key to connect to an event.' id="7" />
                                             </Box>
-                                            <Link inputowner="3" indexofinput="2" outputowner="5" indexofoutput="4" />
+                                            <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="5" indexofoutput="4" />
                                             <Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="1" />
                                         </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                                <BehaviorLayer name="Notification center">
+                                    <BehaviorKeyframe name="Notification center" index="20">
+                                        <Diagram />
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
                             </Timeline>
