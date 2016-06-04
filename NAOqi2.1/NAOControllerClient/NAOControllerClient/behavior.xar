@@ -253,7 +253,7 @@ class MyClass(GeneratedClass):
         self.sock.close()
     def startSocket(self):
         anyAddr = "0.0.0.0"
-        MCAST_ADDR = "227.168.1.1"
+        MCAST_ADDR = "227.168.123.111"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( (anyAddr,self.RecvPort))
