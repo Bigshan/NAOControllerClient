@@ -212,7 +212,7 @@ class MyClass(GeneratedClass):
                                     </BehaviorKeyframe>
                                     <BehaviorKeyframe name="Selection_on" index="20">
                                         <Diagram>
-                                            <Box name="Behavior Cilent" id="3" localization="8" tooltip="Behavior Cilent by shiqishan" x="285" y="24">
+                                            <Box name="Behavior Cilent" id="3" localization="8" tooltip="Behavior Cilent by shiqishan" x="167" y="89">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -220,6 +220,7 @@ class MyClass(GeneratedClass):
 import struct
 import time
 import json
+import sys
 class MyClass(GeneratedClass):
     def __init__(self):
         GeneratedClass.__init__(self)
@@ -228,18 +229,22 @@ class MyClass(GeneratedClass):
         self.postureProxy = ALProxy("ALRobotPosture")
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
+        self.MCAST_ADDR = "227.168.123.111"
         self.RecvPort = 47392
         self.threadtime = 0.02
         self.startSocket()
     def onLoad(self):
         self.bstart = True
         self.stifness_tem = 3
+        self.timeIds = []
     def onUnload(self):
         self.bstart = False
     def onInput_onStart(self):
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
         while(self.bstart):
             try:
-                self.msg,(self.addr, self.port) = self.sock.recvfrom( 200 )
+                self.msg,(self.addr, self.port) = self.sock.recvfrom( 800 )
                 try:
                     dic = json.loads(self.msg)
                     header = str(dic["header"])
@@ -254,12 +259,11 @@ class MyClass(GeneratedClass):
         self.sock.close()
     def startSocket(self):
         anyAddr = "0.0.0.0"
-        MCAST_ADDR = "227.168.123.111"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind( (anyAddr,self.RecvPort))
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
-        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
+        self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(self.MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self, dic):
         action = str(dic["action"])
         self.logger.info("action...%s",action)
@@ -288,8 +292,15 @@ class MyClass(GeneratedClass):
             result = self.postureProxy.goToPosture(posture,0.7)
         elif(action == "SpeechMsg"):
             message = str(dic["message"])
-            list = [self.addr,message]
-            self.outputText(list)
+            timeId = str(dic["timeId"])
+            target = str(dic["target"])
+            list = [self.addr,timeId]
+            if not self.timeIds.count(timeId):
+                self.outputText(message)
+                self.timeIds.append(timeId)
+            self.logger.info("target....%s",target)
+            if not target == self.MCAST_ADDR:
+                self.outputTimeId(list)
         elif(action == "SettingsMsg"):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
             targetIP = self.getString(info1)
@@ -348,69 +359,10 @@ class MyClass(GeneratedClass):
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                                                 <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                                                <Output name="outputText" type="0" type_size="1" nature="2" inner="0" tooltip="" id="4" />
+                                                <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="4" />
+                                                <Output name="outputTimeId" type="0" type_size="1" nature="2" inner="0" tooltip="" id="5" />
                                             </Box>
-                                            <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="493" y="34">
-                                                <bitmap>media/images/box/interaction/say.png</bitmap>
-                                                <script language="4">
-                                                    <content>
-                                                        <![CDATA[import time
-
-class MyClass(GeneratedClass):
-    def __init__(self):
-        GeneratedClass.__init__(self, False)
-        self.tts = ALProxy('ALTextToSpeech')
-        self.ttsStop = ALProxy('ALTextToSpeech', True)
-        self.addr = ""
-    def onLoad(self):
-        self.bIsRunning = False
-        self.ids = []
-
-    def onUnload(self):
-        for id in self.ids:
-            try:
-                self.ttsStop.stop(id)
-            except:
-                pass
-        while( self.bIsRunning ):
-            time.sleep( 0.2 )
-
-    def onInput_onStart(self, p):
-        if len(p) >= 2:
-            self.addr = p[0]
-            message = p[1]
-        self.bIsRunning = True
-        try:
-            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
-            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
-            sentence += str(message)
-            sentence +=  "\RST\ "
-            id = self.tts.post.say(str(sentence))
-            self.ids.append(id)
-            self.tts.wait(id, 0)
-            self.startSpeech([self.addr])
-        finally:
-            try:
-                self.ids.remove(id)
-            except:
-                pass
-            if( self.ids == [] ):
-                self.finishSpeech([self.addr]) # activate output of the box
-                self.bIsRunning = False
-
-    def onInput_onStop(self):
-        self.onUnload()]]>
-</content>
-                                                </script>
-                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
-                                                <Input name="onStart" type="0" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
-                                                <Output name="startSpeech" type="0" type_size="1" nature="2" inner="0" tooltip="" id="4" />
-                                                <Output name="finishSpeech" type="0" type_size="1" nature="2" inner="0" tooltip="Signal sent when Box behavior is finished." id="5" />
-                                                <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="6" />
-                                                <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="7" />
-                                            </Box>
-                                            <Box name="NotificationCenter" id="1" localization="8" tooltip="NotificationCenter by shiqishan" x="478" y="194">
+                                            <Box name="NotificationCenter" id="1" localization="8" tooltip="NotificationCenter by shiqishan" x="415" y="218">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -456,11 +408,16 @@ class MyClass(GeneratedClass):
         data = {"header":header,"action":action,"runBehaviors":runingBehaviors}
         self.sock.sendto(json.dumps(data,separators=(',',':')),(self.notificationIp, self.SendPort))
 
-    def onInput_startSpeech(self):
-        self.logger.info("start")
-
-    def onInput_startSpeech(self):
-        self.logger.info("stop")
+    def onInput_startSpeech(self, p):
+        header = "NCNotification"
+        action = "SpeechRecv"
+        try:
+            ip = p[0]
+            timeId = p[1]
+            data = {"header":header,"action":action,"timeId":timeId}
+            self.sock.sendto(json.dumps(data,separators=(',',':')),(ip, self.SendPort))
+        except Exception as e:
+            self.logger.info("%s..notification...startSpeech..dic..error.%s",p,e)
 
     def onInput_onStop(self):
         self.onUnload()
@@ -479,12 +436,11 @@ class MyClass(GeneratedClass):
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="BehaviorRuning" type="0" type_size="1" nature="1" inner="0" tooltip="" id="2" />
-                                                <Input name="finishSpeech" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
-                                                <Input name="startSpeech" type="0" type_size="1" nature="1" inner="0" tooltip="" id="4" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="5" />
+                                                <Input name="startSpeech" type="0" type_size="1" nature="1" inner="0" tooltip="" id="2" />
+                                                <Input name="BehaviorRuning" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="4" />
                                             </Box>
-                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="311" y="203">
+                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="168" y="221">
                                                 <bitmap>media/images/box/sensors/STM.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -558,12 +514,67 @@ class MyClass(GeneratedClass):
                                                 <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="This output is triggered when the box encounters an error, and contains the error message." id="6" />
                                                 <Parameter name="event" inherits_from_parent="0" content_type="3" value="BehaviorsRun" default_value="" custom_choice="0" tooltip='This parameter describes the signal to connect to, and the service advertising this signal.&#x0A;&#x0A;Use the pattern &quot;Service.Signal&quot; to connect to a signal, or the event key to connect to an event.' id="7" />
                                             </Box>
+                                            <Box name="Say Text" id="6" localization="8" tooltip="Say the text received on its input." x="423" y="74">
+                                                <bitmap>media/images/box/interaction/say.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                                                <Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" />
+                                                <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
+                                                <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
+                                                <Resource name="Speech" type="Lock" timeout="0" />
+                                            </Box>
                                             <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="1" indexofinput="2" outputowner="5" indexofoutput="4" />
+                                            <Link inputowner="1" indexofinput="3" outputowner="5" indexofoutput="4" />
                                             <Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="2" indexofinput="2" outputowner="3" indexofoutput="4" />
-                                            <Link inputowner="1" indexofinput="3" outputowner="2" indexofoutput="4" />
-                                            <Link inputowner="1" indexofinput="4" outputowner="2" indexofoutput="5" />
+                                            <Link inputowner="6" indexofinput="2" outputowner="3" indexofoutput="4" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="3" indexofoutput="5" />
                                         </Diagram>
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
