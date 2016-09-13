@@ -15,7 +15,7 @@
             <BehaviorLayer name="behavior_layer1">
                 <BehaviorKeyframe name="keyframe1" index="1">
                     <Diagram>
-                        <Box name="NAO Controller Client (1)" id="1" localization="8" tooltip="version 2.0" x="339" y="141">
+                        <Box name="NAO Controller Client" id="1" localization="8" tooltip="version 2.0" x="336" y="139">
                             <bitmap>media/images/box/box-diagram.png</bitmap>
                             <script language="4">
                                 <content>
@@ -45,11 +45,17 @@ class MyClass(GeneratedClass):
         self.managerProxy = ALProxy("ALBehaviorManager")
         self.tts = ALProxy("ALTextToSpeech")
         self.memory = ALProxy("ALMemory")
-        self.SendPort = 47391
         self.RecvPort = 47391
         self.any = "0.0.0.0"
         self.isRobotics = 0
         self.isSelected = 0
+        try:
+            self.audio = ALProxy("ALAudioDevice")
+            self.isRobotics = 1
+        except Exception as e:
+            self.audio = None
+            self.isRobotics = 0
+
     def onLoad(self):
         self.bstart = True
     def onUnload(self):
@@ -57,11 +63,6 @@ class MyClass(GeneratedClass):
         self.sock.close()
     def onInput_onStart(self):
         self.stopTimelineParent()
-        try:
-            audio = ALProxy("ALAudioDevice")
-            self.isRobotics = 1
-        except:
-            self.isRobotics = 0
         self.startSocket()
         while(self.bstart):
             try:
@@ -69,7 +70,7 @@ class MyClass(GeneratedClass):
                 try:
                     dic = json.loads(self.msg)
                     header = str(dic["header"])
-                    if header == "NAOController":
+                    if header == "NAOController-fsjahfjh":
                         self.msg_unpack(dic)
                 except Exception as e:
                     self.logger.info("%s..online..json..error.%s",self.msg,e)
@@ -87,9 +88,9 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self, dic):
-        action = str(dic["action"])
-        if action == "NCOnlineReq":
-            self.sendOnlineMsg()
+        action = str(dic["path"])
+        if action == "NC--robots-online":
+            self.sendOnlineMsg(dic)
         elif action == "NCBehaviorReq":
             if self.isSelected:
                 self.sendBehaviorMsg()
@@ -104,13 +105,14 @@ class MyClass(GeneratedClass):
             self.gotoState(0)
         else:
             pass
-    def sendOnlineMsg(self):
-        header = "NCOnlineRes"
+    def sendOnlineMsg(self, dic):
+        recvTime = str(dic["sendTime"])
+        timediff = round(time.time(),3)-float(recvTime)
+        header = "NAOController-sfhajkfhf"
         name = "*Simulator*"
         version = " "
         behaviorVersion = 30
         batteryCharge = 0
-        header = header + str(behaviorVersion)
         port = self.memory.getData("NAOControllerHttpPort")
         if(self.isRobotics == 1):
             try:
@@ -124,7 +126,7 @@ class MyClass(GeneratedClass):
                 batteryCharge = battery.getBatteryCharge()
             except :
                 pass
-        data = {"header":header,"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"port":port}
+        data = {"header":header,"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"port":port,"timediff":round(timediff,3)}
         self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
     def sendBehaviorMsg(self):
         header = "NCBehaviorRes"
