@@ -15,7 +15,7 @@
             <BehaviorLayer name="behavior_layer1">
                 <BehaviorKeyframe name="keyframe1" index="1">
                     <Diagram>
-                        <Box name="NAO Controller Client" id="1" localization="8" tooltip="version 2.0" x="636" y="232">
+                        <Box name="NAO Controller Client" id="1" localization="8" tooltip="version 2.0" x="423" y="143">
                             <bitmap>media/images/box/box-diagram.png</bitmap>
                             <script language="4">
                                 <content>
@@ -46,7 +46,7 @@ class MyClass(GeneratedClass):
         self.tts = ALProxy("ALTextToSpeech")
         self.memory = ALProxy("ALMemory")
         self.RecvPort = 47391
-        self.sendPort = 47392
+        self.sendPort = 47394
         self.any = "0.0.0.0"
         self.isRobotics = 0
         self.isSelected = 0
@@ -103,6 +103,8 @@ class MyClass(GeneratedClass):
             if self.isSelected:
                 self.sendSettingsMsg()
         elif action == "NC--robots-config-on":
+            timediff = float(str(dic["timeDiff"]))
+            self.memory.insertData("NAOController-TimeDiff",timediff)
             self.isSelected = 1
             self.gotoState(20)
             self.sendDic({"tag":tag})
@@ -116,7 +118,8 @@ class MyClass(GeneratedClass):
         recvTime = str(dic["sendTime"])
         timediff = time.time()-float(recvTime)
         tag = str(dic["tag"])
-
+        recvPort = str(dic["recvPort"])
+        self.sendPort = int(recvPort)
         name = "*Simulator*"
         version = " "
         behaviorVersion = 30
@@ -133,7 +136,8 @@ class MyClass(GeneratedClass):
                 batteryCharge = battery.getBatteryCharge()
             except :
                 pass
-        data = {"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
+        #data = {"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
+        data = {"name":name,"version":version,"isRobot":1,"battery":80,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
         self.sendDic(data)
     def sendBehaviorMsg(self, dic):
         tag = str(dic["tag"])
@@ -204,7 +208,7 @@ class MyClass(GeneratedClass):
     def sendDic(self, p):
         data = {"header":"NAOController-sfhajkfhf"}
         data.update(p)
-        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.sendPort))
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
 
     def gotoState(self, p):
         try:
@@ -246,7 +250,7 @@ class MyClass(GeneratedClass):
         self.tts = ALProxy("ALTextToSpeech")
         self.MCAST_ADDR = "227.168.123.111"
         self.RecvPort = 47393
-        self.sendPort = 47392
+        self.sendPort = 47394
         self.threadtime = 0.02
         self.startSocket()
         reload(sys)
@@ -286,12 +290,12 @@ class MyClass(GeneratedClass):
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(self.MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self, dic):
-        action = str(dic["path"])
+        path = str(dic["path"])
         tag = str(dic["tag"])
         if self.tags.count(tag) >=1 :
             self.sendDic({"tag":tag})
             return
-        if(action == "NC--motion-walk"):
+        if(path == "NC--motion-walk"):
             if int(tag) >= 10000000:
                 self.sendDic({"tag":tag})
             walkX = int(dic["x"])/10.0
@@ -300,7 +304,7 @@ class MyClass(GeneratedClass):
             frequency = int(dic["frequency"])/10.0
             self.motion.setWalkTargetVelocity(walkX,walkY,theta,frequency)
 
-        elif(action == "NC--motion-head"):
+        elif(path == "NC--motion-head"):
             walkX = int(dic["x"])/10.0
             walkY = int(dic["y"])/10.0
             currentYaw = self.motion.getAngles("HeadYaw",False)
@@ -313,13 +317,28 @@ class MyClass(GeneratedClass):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
             if(walkY<=0 and currentYaw[0]>=-2.07):
                 self.motion.changeAngles("HeadYaw",walkY,0.2)
-        elif(action == "NC--motion-posture"):
+        elif(path == "NC--motion-posture"):
             posture = str(dic["posture"])
             self.sendDic({"tag":tag})
             self.tags.append(tag)
             self.postureProxy.setMaxTryNumber(2)
             result = self.postureProxy.goToPosture(posture,0.7)
-        elif(action == "SpeechMsg"):
+
+        elif(path == "NC--behavior-single"):
+            self.sendDic({"tag":tag})
+            command = str(dic["command"])
+            behavior = str(dic["behavior"])
+            if(command == "start"):
+                self.managerProxy.post.runBehavior(behavior)
+            elif(command == "stop"):
+                if (self.managerProxy.isBehaviorRunning(behavior)):
+                    self.managerProxy.stopBehavior(behavior)
+            elif(command == "add"):
+                self.managerProxy.addDefaultBehavior(behavior)
+            elif(command == "remove"):
+                self.managerProxy.removeDefaultBehavior(behavior)
+
+        elif(path == "SpeechMsg"):
             message = str(dic["message"])
             timeId = str(dic["timeId"])
             target = str(dic["target"])
@@ -330,7 +349,7 @@ class MyClass(GeneratedClass):
             self.logger.info("target....%s",target)
             if not target == self.MCAST_ADDR:
                 self.outputTimeId(list)
-        elif(action == "SettingsMsg"):
+        elif(path == "SettingsMsg"):
             header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
             targetIP = self.getString(info1)
             body = self.getString(info2)
@@ -360,7 +379,7 @@ class MyClass(GeneratedClass):
                         system.shutdown()
                 except:
                     pass
-        elif(action == "SingleBehaviorMsg"):
+        elif(path == "SingleBehaviorMsg"):
             command = str(dic["command"])
             behavior = str(dic["behavior"])
             if(command == "start"):
@@ -372,7 +391,7 @@ class MyClass(GeneratedClass):
                 self.managerProxy.addDefaultBehavior(behavior)
             elif(command == "remove"):
                 self.managerProxy.removeDefaultBehavior(behavior)
-        elif(action == "MultiBehaviorMsg"):
+        elif(path == "MultiBehaviorMsg"):
             pass
         else:
             pass
@@ -387,7 +406,7 @@ class MyClass(GeneratedClass):
     def sendDic(self, p):
         data = {"header":"NAOController-sfhajkfhf"}
         data.update(p)
-        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.sendPort))]]>
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))]]>
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
