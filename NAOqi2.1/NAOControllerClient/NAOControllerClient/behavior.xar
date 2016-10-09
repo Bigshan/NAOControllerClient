@@ -76,6 +76,8 @@ class MyClass(GeneratedClass):
                 try:
                     header = str(dic["header"])
                     if header == "NAOController-fsjahfjh":
+                        recvPort = int(str(dic["recvPort"]))
+                        self.sendPort = recvPort
                         self.msg_unpack(dic)
                 except Exception as e:
                     self.logger.info("%s..msg..unpack..error.%s",self.msg,e)
@@ -88,7 +90,7 @@ class MyClass(GeneratedClass):
         MCAST_ADDR = "227.168.123.111"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.bind( (anyAddr,self.RecvPort))
+        self.sock.bind((anyAddr,self.RecvPort))
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self, dic):
@@ -208,7 +210,7 @@ class MyClass(GeneratedClass):
     def sendDic(self, p):
         data = {"header":"NAOController-sfhajkfhf"}
         data.update(p)
-        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.sendPort))
 
     def gotoState(self, p):
         try:
@@ -231,7 +233,7 @@ class MyClass(GeneratedClass):
                                     </BehaviorKeyframe>
                                     <BehaviorKeyframe name="Selection_on" index="20">
                                         <Diagram>
-                                            <Box name="Behavior Cilent" id="3" localization="8" tooltip="Behavior Cilent by shiqishan" x="167" y="89">
+                                            <Box name="Behavior Cilent" id="3" localization="8" tooltip="Behavior Cilent by shiqishan" x="323" y="53">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -252,6 +254,7 @@ class MyClass(GeneratedClass):
         self.RecvPort = 47393
         self.sendPort = 47394
         self.threadtime = 0.02
+        self.notiTag = 70000000
         self.startSocket()
         reload(sys)
         sys.setdefaultencoding('utf-8')
@@ -274,6 +277,8 @@ class MyClass(GeneratedClass):
                 try:
                     header = str(dic["header"])
                     if header == "NAOController-fsjahfjh":
+                        recvPort = int(str(dic["recvPort"]))
+                        self.sendPort = recvPort
                         self.msg_unpack(dic)
                 except Exception as e:
                     self.logger.info("%s..msg..unpack..error.%s",self.msg,e)
@@ -286,7 +291,7 @@ class MyClass(GeneratedClass):
         anyAddr = "0.0.0.0"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        self.sock.bind( (anyAddr,self.RecvPort))
+        self.sock.bind((anyAddr,self.RecvPort))
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_MULTICAST_TTL, 255)
         self.sock.setsockopt(socket.IPPROTO_IP,socket.IP_ADD_MEMBERSHIP,socket.inet_aton(self.MCAST_ADDR) + socket.inet_aton(anyAddr))
     def msg_unpack(self, dic):
@@ -295,7 +300,11 @@ class MyClass(GeneratedClass):
         if self.tags.count(tag) >=1 :
             self.sendDic({"tag":tag})
             return
-        if(path == "NC--motion-walk"):
+        if(path == "NC--notification-on"):
+            pass
+        elif(path == "NC--notification-off"):
+            pass
+        elif(path == "NC--motion-walk"):
             if int(tag) >= 10000000:
                 self.sendDic({"tag":tag})
             walkX = int(dic["x"])/10.0
@@ -326,6 +335,7 @@ class MyClass(GeneratedClass):
 
         elif(path == "NC--behavior-single"):
             self.sendDic({"tag":tag})
+            self.tags.append(tag)
             command = str(dic["command"])
             behavior = str(dic["behavior"])
             if(command == "start"):
@@ -406,16 +416,47 @@ class MyClass(GeneratedClass):
     def sendDic(self, p):
         data = {"header":"NAOController-sfhajkfhf"}
         data.update(p)
-        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.port))]]>
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.sendPort))
+
+    def sendNotification(self, p):
+        data = {"header":"NAOController-sfhajkfhf","tag":self.notiTag}
+        data.update(p)
+        self.sock.sendto(json.dumps(data,separators=(',',':')),(self.addr, self.sendPort))
+        self.notiTag = self.notiTag+1
+
+    def onInput_sendBehaviorNotification(self, p):
+        key = "Notification--BehaviorsRun"
+        runingBehaviors = ""
+        for i in p:
+            if i.count(".currentChoregrapheBehavior"):
+                pass
+            elif i.count(".lastUploadedChoregrapheBehavior"):
+                pass
+            elif i.count("animation"):
+                pass
+            elif i.count("default"):
+                pass
+            elif i.count("boot-config"):
+                pass
+            elif i.count("diagnostic"):
+                pass
+            else:
+                runingBehaviors += i
+                runingBehaviors += "$"
+                if len(runingBehaviors) >7900:
+                    break
+        data = {"notikey":key,"runBehaviors":runingBehaviors}
+        self.sendNotification(data)]]>
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                                                 <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                                                <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="4" />
-                                                <Output name="outputTimeId" type="0" type_size="1" nature="2" inner="0" tooltip="" id="5" />
+                                                <Input name="sendBehaviorNotification" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="4" />
+                                                <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="5" />
+                                                <Output name="outputTimeId" type="0" type_size="1" nature="2" inner="0" tooltip="" id="6" />
                                             </Box>
-                                            <Box name="NotificationCenter" id="1" localization="8" tooltip="NotificationCenter by shiqishan" x="415" y="218">
+                                            <Box name="NotificationCenter" id="1" localization="8" tooltip="NotificationCenter by shiqishan" x="499" y="223">
                                                 <bitmap>media/images/box/box-diagram.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -427,13 +468,36 @@ class MyClass(GeneratedClass):
         GeneratedClass.__init__(self)
         self.memory = ALProxy("ALMemory")
         self.SendPort = 47392
+        self.RecvPort = 47395
+        self.isOn = True
         self.notificationIp = "227.168.123.122"
         self.startSocket()
     def onLoad(self):
-        pass
+        self.bstart = True
     def onUnload(self):
-        pass
+        self.bstart = False
 
+    def onInput_onStart(self):
+        while(self.bstart):
+            try:
+                self.msg,(self.addr, self.port) = self.sock.recvfrom( 400 )
+                dic = {}
+                try:
+                    dic = json.loads(self.msg)
+                except Exception as e:
+                    self.logger.info("%s..notification..json..error.%s",self.msg,e)
+                try:
+                    header = str(dic["header"])
+                    if header == "NAOController-fsjahfjh":
+                        self.msg_unpack(dic)
+                except Exception as e:
+                    self.logger.info("%s..msg..unpack..error.%s",self.msg,e)
+            except Exception as e:
+                self.logger.info("notification..req..error..%s",e)
+
+
+    def msg_unpack(self, dic):
+        pass
     def onInput_BehaviorRuning(self, p):
         self.logger.info(p)
         header = "NCNotification"
@@ -478,7 +542,7 @@ class MyClass(GeneratedClass):
     def startSocket(self):
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-
+        self.sock.bind(("",self.RecvPort))
     def getString(self,p):
         string = []
         string = p.split('*|')
@@ -489,11 +553,12 @@ class MyClass(GeneratedClass):
 </content>
                                                 </script>
                                                 <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
-                                                <Input name="startSpeech" type="0" type_size="1" nature="1" inner="0" tooltip="" id="2" />
-                                                <Input name="BehaviorRuning" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
-                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="4" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="" id="2" />
+                                                <Input name="startSpeech" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
+                                                <Input name="BehaviorRuning" type="0" type_size="1" nature="1" inner="0" tooltip="" id="4" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="5" />
                                             </Box>
-                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="168" y="221">
+                                            <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="164" y="163">
                                                 <bitmap>media/images/box/sensors/STM.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -567,7 +632,7 @@ class MyClass(GeneratedClass):
                                                 <Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip="This output is triggered when the box encounters an error, and contains the error message." id="6" />
                                                 <Parameter name="event" inherits_from_parent="0" content_type="3" value="BehaviorsRun" default_value="" custom_choice="0" tooltip='This parameter describes the signal to connect to, and the service advertising this signal.&#x0A;&#x0A;Use the pattern &quot;Service.Signal&quot; to connect to a signal, or the event key to connect to an event.' id="7" />
                                             </Box>
-                                            <Box name="Say Text" id="6" localization="8" tooltip="Say the text received on its input." x="423" y="74">
+                                            <Box name="Say Text" id="6" localization="8" tooltip="Say the text received on its input." x="495" y="54">
                                                 <bitmap>media/images/box/interaction/say.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -624,10 +689,10 @@ class MyClass(GeneratedClass):
                                                 <Resource name="Speech" type="Lock" timeout="0" />
                                             </Box>
                                             <Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="1" indexofinput="3" outputowner="5" indexofoutput="4" />
                                             <Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="1" />
-                                            <Link inputowner="6" indexofinput="2" outputowner="3" indexofoutput="4" />
-                                            <Link inputowner="1" indexofinput="2" outputowner="3" indexofoutput="5" />
+                                            <Link inputowner="6" indexofinput="2" outputowner="3" indexofoutput="5" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="1" />
+                                            <Link inputowner="3" indexofinput="3" outputowner="5" indexofoutput="4" />
                                         </Diagram>
                                     </BehaviorKeyframe>
                                 </BehaviorLayer>
