@@ -68,6 +68,7 @@ class MyClass(GeneratedClass):
         while(self.bstart):
             try:
                 self.msg,(self.addr, self.port) = self.sock.recvfrom( 400 )
+                self.logger.info("msg....%s",self.msg)
                 dic = {}
                 try:
                     dic = json.loads(self.msg)
@@ -87,7 +88,7 @@ class MyClass(GeneratedClass):
         self.onUnload()
     def startSocket(self):
         anyAddr = "0.0.0.0"
-        MCAST_ADDR = "227.168.123.111"
+        MCAST_ADDR = "224.0.0.111"
         self.sock = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.sock.bind((anyAddr,self.RecvPort))
@@ -138,8 +139,7 @@ class MyClass(GeneratedClass):
                 batteryCharge = battery.getBatteryCharge()
             except :
                 pass
-        #data = {"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
-        data = {"name":name,"version":version,"isRobot":1,"battery":80,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
+        data = {"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3),"tag":tag}
         self.sendDic(data)
     def sendBehaviorMsg(self, dic):
         tag = str(dic["tag"])
@@ -255,6 +255,7 @@ class MyClass(GeneratedClass):
         self.sendPort = 47394
         self.threadtime = 0.02
         self.notiTag = 70000000
+        self.ncid = ""
         self.startSocket()
         reload(sys)
         sys.setdefaultencoding('utf-8')
@@ -297,6 +298,12 @@ class MyClass(GeneratedClass):
     def msg_unpack(self, dic):
         path = str(dic["path"])
         tag = str(dic["tag"])
+        ncid = str(dic["ncid"])
+
+        if self.ncid != ncid:
+            self.tags = []
+            self.ncid = ncid
+
         if self.tags.count(tag) >=1 :
             self.sendDic({"tag":tag})
             return
