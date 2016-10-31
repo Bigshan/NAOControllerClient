@@ -25,12 +25,11 @@
                             <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
                             <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
                             <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
-                            <Parameter name="waitTime" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5" tooltip="" id="4" />
                             <Timeline enable="1" fps="25" start_frame="1" end_frame="-1" size="-1">
                                 <BehaviorLayer name="ReqAndRes">
                                     <BehaviorKeyframe name="ReqAndRes" index="1">
                                         <Diagram>
-                                            <Box name="server" id="1" localization="8" tooltip="socket server" x="129" y="127">
+                                            <Box name="server" id="1" localization="8" tooltip="socket server" x="255" y="125">
                                                 <bitmap>media/images/box/box-python-script.png</bitmap>
                                                 <script language="4">
                                                     <content>
@@ -57,6 +56,7 @@ class MyClass(GeneratedClass):
         self.startSocket()
     def onLoad(self):
         self.bstart = True
+
     def onUnload(self):
         self.bstart = False
         self.sock.close()
@@ -64,7 +64,7 @@ class MyClass(GeneratedClass):
     def gotoState(self, p):
         try:
             self.getParentTimeline().goTo(p)
-        except: # if NAOqi < 1.14
+        except:
             self.gotoAndStopParent(p)
 
     def onInput_onStart(self):
@@ -72,7 +72,6 @@ class MyClass(GeneratedClass):
         while(self.bstart):
             try:
                 data,(self.host,port) = self.sock.recvfrom( 400 )
-                #self.logger.info("msg....%s",data)
                 recvDic = {}
                 try:
                     recvDic = json_loads_byteified(data)
@@ -95,7 +94,7 @@ class MyClass(GeneratedClass):
             data.update(p)
             self.sock.sendto(json.dumps(data,separators=(',',':')),(self.host,self.sendPort))
         except Exception as e:
-            self.logger.info("send data..:%s error..%s",p,e)
+            self.logger.info("send data..:%s error..%s",data,e)
     def onInput_onStop(self):
         self.onUnload()
 
@@ -123,13 +122,19 @@ class MyClass(GeneratedClass):
                 outputDic = self.getSettingsDic(dic)
                 outputDic.update(baseDic)
                 self.sendData(outputDic)
-
+        elif path == "NC--speech-setinfo":
+            if self.isSelected:
+                outputDic = self.getSpeechSetDic(dic)
+                outputDic.update(baseDic)
+                self.sendData(outputDic)
         elif path == "NC--robots-config-on":
             timediff = float(dic["timeDiff"])
+            localIP = dic["loaclIP"]
             self.memory.insertData("NAOController-TimeDiff",timediff)
+            self.memory.insertData("NAOController-LocalIP",localIP)
             self.isSelected = 1
-            self.gotoState(20)
             self.sendData(baseDic)
+            self.gotoState(20)
         elif path == "NC--robots-config-off":
             self.isSelected = 0
             self.gotoState(0)
@@ -138,9 +143,9 @@ class MyClass(GeneratedClass):
     def getOnlineDic(self, dic):
         recvTime = dic["sendTime"]
         timediff = time.time()-float(recvTime)
-        name = "*Simulator*"
-        version = " "
-        behaviorVersion = 30
+        name = "Simulator"
+        version = ""
+        serverVersion = 35
         batteryCharge = 0
         if(self.isRobotics == 1):
             try:
@@ -154,7 +159,7 @@ class MyClass(GeneratedClass):
                 batteryCharge = battery.getBatteryCharge()
             except :
                 pass
-        data = {"name":name,"version":version,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3)}
+        data = {"name":name,"version":version,"serverVersion":serverVersion,"isRobot":self.isRobotics,"battery":batteryCharge,"isSelected":self.isSelected,"timediff":round(timediff,3)}
         return data
 
     def getBehaviorsDic(self, dic):
@@ -192,9 +197,16 @@ class MyClass(GeneratedClass):
         return data
 
     def getSettingsDic(self, dic):
+        robotName = "Simulator"
         supportLanguage = ""
+        version = ""
         isHighVersion = 0
-        robotName = ""
+        volume = 0
+        stiffness = 0
+        cpuT = 0
+        charging = 0
+        charge = 0
+        autoLife = "Disabled"
         if(self.isRobotics == 1):
             try:
                 volume = self.audio.getOutputVolume()
@@ -207,21 +219,46 @@ class MyClass(GeneratedClass):
                 system = ALProxy("ALSystem")
                 isHighVersion = 1
                 robotName = system.robotName()
+                version = system.systemVersion()
             except :
                 pass
-        else:
-            volume = 0
-            stiffness = 0
+            try:
+                cpuT = self.memory.getData("Device/SubDeviceList/Head/Temperature/Sensor/Value")
+                if self.memory.getData("Device/SubDeviceList/Battery/Current/Sensor/Value") >0:
+                    charging = 1
+                charge =int(self.memory.getData("Device/SubDeviceList/Battery/Charge/Sensor/Value")*100)
+            except :
+                pass
+            try:
+                autonomousLife = ALProxy("ALAutonomousLife")
+                autoLife = autonomousLife.getState()
+            except :
+                pass
         currentLanguage = self.tts.getLanguage()
         languageList = self.tts.getAvailableLanguages()
+
         for i in languageList:
             supportLanguage += i
             supportLanguage += "$"
-            if len(supportLanguage) >360:
-                    break
-        data = {"currentLanguage":currentLanguage,"supportLanguage":supportLanguage,"isRobot":self.isRobotics,"Name":robotName,"isHighVersion":isHighVersion,"stiffness":stiffness,"volume":volume}
+        data = {"currentLanguage":currentLanguage,"supportLanguage":supportLanguage,"isRobot":self.isRobotics,"name":robotName,"isHighVersion":isHighVersion,"stiffness":stiffness,"volume":volume,"CPUT":cpuT,"charging":charging,"charge":charge,"version":version,"autoLife":autoLife}
         return data
 
+    def getSpeechSetDic(self, dic):
+        supportLanguage = ""
+        volume = 0
+        if(self.isRobotics == 1):
+            try:
+                volume = self.tts.getVolume()*100
+            except :
+                volume = 0
+        currentLanguage = self.tts.getLanguage()
+        languageList = self.tts.getAvailableLanguages()
+
+        for i in languageList:
+            supportLanguage += i
+            supportLanguage += "$"
+        data = {"currentLanguage":currentLanguage,"supportLanguage":supportLanguage,"volume":volume}
+        return data
 
 ########################################################
 def json_loads_byteified(json_text):
@@ -265,6 +302,7 @@ def _byteify(data, ignore_dicts = False):
 import time
 import json
 import sys
+import threading
 class MyClass(GeneratedClass):
     def __init__(self):
         GeneratedClass.__init__(self)
@@ -275,9 +313,9 @@ class MyClass(GeneratedClass):
         self.tts = ALProxy("ALTextToSpeech")
         self.RecvPort = 47393
         self.sendPort = 47394
-        self.threadtime = 0.02
         self.notiTag = 70000000
         self.ncid = ""
+        self.ip = ""
         self.startSocket()
         reload(sys)
         sys.setdefaultencoding('utf-8')
@@ -291,23 +329,25 @@ class MyClass(GeneratedClass):
         self.tags = []
         while(self.bstart):
             try:
-                data,(self.host,port) = self.sock.recvfrom( 400 )
-                #self.logger.info("msg....%s",data)
+                data,(self.host,port) = self.sock.recvfrom( 500 )
                 recvDic = {}
                 try:
                     recvDic = json_loads_byteified(data)
                 except Exception as e:
                     self.logger.info("data:%s..json..error..%s",data,e)
+                if self.ip == "":
+                    self.ip = self.memory.getData("NAOController-LocalIP")
                 try:
                     header = recvDic["header"]
-                    if header == "NAOController-fsjahfjh":
+                    targets = recvDic["targets"]
+                    if header == "NAOController-fsjahfjh" and targets.count(self.ip):
                         recvPort = int(recvDic["recvPort"])
                         self.sendPort = recvPort
                         self.recvDicUnpack(recvDic)
                 except Exception as e:
                     self.logger.info("%s..msg..unpack..error.%s",data,e)
             except Exception as e:
-                self.logger.info("online..req..error..%s",e)
+                self.logger.info("post..req..error..%s",e)
     def onInput_onStop(self):
         self.onUnload()
         self.sock.close()
@@ -359,12 +399,11 @@ class MyClass(GeneratedClass):
             self.tags.append(tag)
             self.postureProxy.setMaxTryNumber(2)
             result = self.postureProxy.goToPosture(posture,0.7)
-
         elif(path == "NC--behavior-single"):
             self.sendData({"tag":tag})
             self.tags.append(tag)
-            command = str(dic["command"])
-            behavior = str(dic["behavior"])
+            command = dic["command"]
+            behavior = dic["behavior"]
             if(command == "start"):
                 self.managerProxy.post.runBehavior(behavior)
             elif(command == "stop"):
@@ -374,71 +413,64 @@ class MyClass(GeneratedClass):
                 self.managerProxy.addDefaultBehavior(behavior)
             elif(command == "remove"):
                 self.managerProxy.removeDefaultBehavior(behavior)
+        elif(path == "NC--behavior-sync"):
+            command = dic["command"]
+            behavior = dic["behavior"]
+            if(command == "start"):
+                timediff = self.memory.getData("NAOController-TimeDiff")
+                runtime = float(dic["runtime"])+timeDiff - time.time()
+                if runtime >=0:
+                    behaviorStart(runtime,behavior)
+                    self.managerProxy.preloadBehavior(behavior)
+                else:
+                    self.managerProxy.post.runBehavior(behavior)
 
-        elif(path == "SpeechMsg"):
+            elif(command == "stop"):
+                if (self.managerProxy.isBehaviorRunning(behavior)):
+                    self.managerProxy.stopBehavior(behavior)
+
+            self.sendData({"tag":tag})
+            self.tags.append(tag)
+
+        elif(path == "NC--speech-speech"):
+            self.sendData({"tag":tag})
+            self.tags.append(tag)
             message = dic["message"]
-            timeId = str(dic["timeId"])
-            target = str(dic["target"])
-            list = [self.addr,timeId]
-            if not self.timeIds.count(timeId):
-                self.outputText(message)
-                self.timeIds.append(timeId)
-            self.logger.info("target....%s",target)
-            if not target == self.MCAST_ADDR:
-                self.outputTimeId(list)
-        elif(path == "SettingsMsg"):
-            header,info1,info2,info3 = struct.unpack("!16s20s20s40s",self.msg)
-            targetIP = self.getString(info1)
-            body = self.getString(info2)
-            value = self.getString(info3)
-            if(body == "Stiffness"):
-                self.motion.post.stiffnessInterpolation("Body",float(value)/10.0, 0.1)
-            elif(body == "Volume"):
+            self.outputText(message)
+        elif(path == "NC--settings-set"):
+            self.sendData({"tag":tag})
+            self.tags.append(tag)
+            key = dic["key"]
+            value = dic["value"]
+            if(key == "stiffness"):
+                self.motion.post.stiffnessInterpolation("Body",float(value)/1.0, 0.2)
+            elif(key == "volume"):
                 try:
                     audio = ALProxy("ALAudioDevice")
                     audio.setOutputVolume(int(value))
                 except:
                     pass
-            elif(body == "Language"):
+            elif(key == "speechVolume"):
+                self.tts.setVolume(int(value)/100.0)
+            elif(key == "language"):
                 self.tts.setLanguage(value)
-            elif(body == "RobotName"):
+            elif(key == "autoLife"):
                 try:
-                    system = ALProxy("ALSystem")
-                    system.setRobotName(value)
+                    autonomousLife = ALProxy("ALAutonomousLife")
+                    autonomousLife.setState(value)
                 except:
                     pass
-            elif(body == "System"):
+            elif(key == "system"):
                 try:
                     system = ALProxy("ALSystem")
-                    if(value == "reboot"):
+                    if(value == "Reboot"):
                         system.reboot()
-                    elif(value == "shutdown"):
+                    elif(value == "Shut Down"):
                         system.shutdown()
                 except:
                     pass
-        elif(path == "SingleBehaviorMsg"):
-            command = str(dic["command"])
-            behavior = str(dic["behavior"])
-            if(command == "start"):
-                self.managerProxy.post.runBehavior(behavior)
-            elif(command == "stop"):
-                if (self.managerProxy.isBehaviorRunning(behavior)):
-                    self.managerProxy.stopBehavior(behavior)
-            elif(command == "add"):
-                self.managerProxy.addDefaultBehavior(behavior)
-            elif(command == "remove"):
-                self.managerProxy.removeDefaultBehavior(behavior)
-        elif(path == "MultiBehaviorMsg"):
-            pass
         else:
             pass
-    def getString(self,p):
-        string = []
-        string = p.split('*|')
-        if len(string)>0:
-            return string[0]
-        else:
-            return ""
 
     def sendData(self, p):
         try:
@@ -480,7 +512,13 @@ class MyClass(GeneratedClass):
                     break
         data = {"notikey":key,"runBehaviors":runingBehaviors}
         self.sendNotification(data)
-
+#####################################################
+def behaviorStart(t, behavior):
+    th=threading.Timer(t,runBehavior,[behavior])
+    th.start()
+def runBehavior(behavior):
+    managerProxy = ALProxy("ALBehaviorManager")
+    managerProxy.post.runBehavior(behavior)
 ########################################################
 def json_loads_byteified(json_text):
     return _byteify(
@@ -506,7 +544,6 @@ def _byteify(data, ignore_dicts = False):
                                                 <Input name="sendBehaviorNotification" type="0" type_size="1" nature="1" inner="0" tooltip="" id="3" />
                                                 <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="4" />
                                                 <Output name="outputText" type="3" type_size="1" nature="2" inner="0" tooltip="" id="5" />
-                                                <Output name="outputTimeId" type="0" type_size="1" nature="2" inner="0" tooltip="" id="6" />
                                             </Box>
                                             <Box name="Subscribe to Event" id="5" localization="8" tooltip="Subscribes to a signal on a NAOqi2 service, or an event in NAOqi&apos;s shared memory&#x0A;When subscribed, the output will be triggered every time the signal is emitted or the event is raised." x="150" y="139">
                                                 <bitmap>media/images/box/sensors/STM.png</bitmap>
